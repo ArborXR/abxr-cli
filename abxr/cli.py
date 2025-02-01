@@ -10,7 +10,8 @@ import os
 from abxr.version import version
 from abxr.formats import DataOutputFormats
 
-from abxr.apps import AppCommands, CommandHandler as AppsCommandHandler
+from abxr.apps import Commands as AppCommands, CommandHandler as AppsCommandHandler
+from abxr.files import Commands as FileCommands, CommandHandler as FilesCommandHandler
 
 ABXR_API_URL = os.environ.get("ABXR_API_URL", "https://api.xrdm.app/api/v2")
 ABXR_API_TOKEN = os.environ.get("ABXR_API_TOKEN")
@@ -62,6 +63,16 @@ def main():
     revoke_share_parser.add_argument("--release_channel_id", help="ID of the release channel to revoke", type=str, required=True)
     revoke_share_parser.add_argument("--organization_slug", help="Slug of the organization to revoke from", type=str, required=True)
 
+    files_parser = subparsers.add_parser("files", help="Files command")
+    files_subparsers = files_parser.add_subparsers(dest="files_command", help="Files command help")
+
+    # List All Files
+    files_list_parser = files_subparsers.add_parser(FileCommands.LIST.value, help="List files")
+
+    # Detail of File
+    file_detail_parser = files_subparsers.add_parser(FileCommands.DETAILS.value, help="Detail of a file")
+    file_detail_parser.add_argument("file_id", help="ID of the file", type=str)
+
     args = parser.parse_args()
 
     if args.url is None:
@@ -74,6 +85,10 @@ def main():
 
     if args.command == "apps":
         handler = AppsCommandHandler(args)
+        handler.run()
+
+    elif args.command == "files":
+        handler = FilesCommandHandler(args)
         handler.run()
         
 

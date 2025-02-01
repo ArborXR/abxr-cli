@@ -14,7 +14,7 @@ from abxr.api_service import ApiService
 from abxr.multipart import MultipartFileS3
 from abxr.formats import DataOutputFormats
 
-class AppCommands(Enum):
+class Commands(Enum):
     LIST = "list"
     DETAILS = "details"
     RELEASE_CHANNELS_LIST = "release_channels_list"
@@ -183,7 +183,7 @@ class CommandHandler:
         self.service = AppsService(self.args.url, self.args.token)
 
     def run(self):
-        if self.args.apps_command == AppCommands.LIST.value:            
+        if self.args.apps_command == Commands.LIST.value:            
             apps_list = self.service.get_all_apps()
 
             if self.args.format == DataOutputFormats.JSON.value:
@@ -193,7 +193,7 @@ class CommandHandler:
             else:
                 print("Invalid output format.")
 
-        elif self.args.apps_command == AppCommands.DETAILS.value:
+        elif self.args.apps_command == Commands.DETAILS.value:
             app_detail = self.service.get_app_detail(self.args.app_id)
 
             if self.args.format == DataOutputFormats.JSON.value:
@@ -203,7 +203,7 @@ class CommandHandler:
             else:
                 print("Invalid output format.")
 
-        elif self.args.apps_command == AppCommands.RELEASE_CHANNELS_LIST.value:
+        elif self.args.apps_command == Commands.RELEASE_CHANNELS_LIST.value:
             release_channels = self.service.get_all_release_channels_for_app(self.args.app_id)
 
             if self.args.format == DataOutputFormats.JSON.value:
@@ -213,7 +213,7 @@ class CommandHandler:
             else:
                 print("Invalid output format.")
 
-        elif self.args.apps_command == AppCommands.RELEASE_CHANNEL_DETAILS.value:
+        elif self.args.apps_command == Commands.RELEASE_CHANNEL_DETAILS.value:
             release_channel_detail = self.service.get_release_channel_detail(self.args.app_id, self.args.release_channel_id)
 
             if self.args.format == DataOutputFormats.JSON.value:
@@ -223,11 +223,11 @@ class CommandHandler:
             else:
                 print("Invalid output format.")
 
-        elif self.args.apps_command == AppCommands.UPLOAD.value:
+        elif self.args.apps_command == Commands.UPLOAD.value:
             self.service.upload_file(self.args.app_id, self.args.filename, self.args.version, self.args.notes)
 
-        elif self.args.apps_command == AppCommands.SHARE.value:
+        elif self.args.apps_command == Commands.SHARE.value:
             self.service.share_app(self.args.app_id, self.args.release_channel_id, self.args.organization_slug)
 
-        elif self.args.apps_command == AppCommands.REVOKE_SHARE.value:
+        elif self.args.apps_command == Commands.REVOKE_SHARE.value:
             self.service.revoke_shared_app(self.args.app_id, self.args.release_channel_id, self.args.organization_slug)
