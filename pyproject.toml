@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=64.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "abxrcli"
+version = "0.9.0"
+description = "ArborXR CLI"
+readme = "README.md"
+authors = [{ name = "Peter Peterson", email = "peter@arborxr.com" }]
+
+dependencies = [
+]
+
+[project.scripts]
+abxr-cli = "abxr.cli:main"
+
+
