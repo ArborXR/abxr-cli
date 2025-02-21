@@ -17,8 +17,10 @@ from abxr.formats import DataOutputFormats
 class Commands(Enum):
     LIST = "list"
     DETAILS = "details"
-    RELEASE_CHANNELS_LIST = "release_channels_list"
+    VERSION_LIST = "versions"
+    RELEASE_CHANNELS_LIST = "release_channels"
     RELEASE_CHANNEL_DETAILS = "release_channel_details"
+    RELEASE_CHANNEL_SET_VERSION = "release_channel_set_version"
     UPLOAD = "upload"
     SHARE = "share"
     REVOKE_SHARE = "revoke"
@@ -127,6 +129,26 @@ class AppsService(ApiService):
 
         return response.json()
     
+    def get_all_versions_for_app(self, app_id):
+        url = f'{self.base_url}/apps/{app_id}/versions'
+
+        response = requests.get(url, headers=self.headers)
+        response.raise_for_status()
+
+        json = response.json()
+
+        data = json['data']
+
+        if json['links']:
+            while json['links']['next']:
+                response = requests.get(json['links']['next'], headers=self.headers)
+                response.raise_for_status()
+                json = response.json()
+
+                data += json['data']
+
+        return data
+    
     def get_all_release_channels_for_app(self, app_id):
         url = f'{self.base_url}/apps/{app_id}/release-channels'
 
@@ -151,6 +173,16 @@ class AppsService(ApiService):
         url = f'{self.base_url}/apps/{app_id}/release-channels/{release_channel_id}'
 
         response = requests.get(url, headers=self.headers)
+        response.raise_for_status()
+
+        return response.json()
+    
+    def set_version_for_release_channel(self, app_id, release_channel_id, version_id):
+        url = f'{self.base_url}/apps/{app_id}/release-channels/{release_channel_id}'
+
+        data = {'versionId': version_id}
+
+        response = requests.put(url, json=data, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
@@ -222,6 +254,19 @@ class CommandHandler:
                 print(yaml.dump(release_channel_detail))
             else:
                 print("Invalid output format.")
+
+        elif self.args.apps_command == Commands.VERSION_LIST.value:
+            versions = self.service.get_all_versions_for_app(self.args.app_id)
+
+            if self.args.format == DataOutputFormats.JSON.value:
+                print(versions)
+            elif self.args.format == DataOutputFormats.YAML.value:
+                print(yaml.dump(versions))
+            else:
+                print("Invalid output format.")
+
+        elif self.args.apps_command == Commands.RELEASE_CHANNEL_SET_VERSION.value:
+            self.service.set_version_for_release_channel(self.args.app_id, self.args.release_channel_id, self.args.version_id)
 
         elif self.args.apps_command == Commands.UPLOAD.value:
             self.service.upload_file(self.args.app_id, self.args.filename, self.args.version, self.args.notes)

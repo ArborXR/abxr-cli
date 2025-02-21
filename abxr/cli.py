@@ -16,6 +16,7 @@ from abxr.files import Commands as FileCommands, CommandHandler as FilesCommandH
 ABXR_API_URL = os.environ.get("ABXR_API_URL", "https://api.xrdm.app/api/v2")
 ABXR_API_TOKEN = os.environ.get("ABXR_API_TOKEN")
 
+
 def main():
     parser = argparse.ArgumentParser(description=f'%(prog)s {version}')
     parser.add_argument("-u", "--url", help="API Base URL", type=str, default=ABXR_API_URL)
@@ -35,6 +36,11 @@ def main():
     app_detail_parser = apps_subparsers.add_parser(AppCommands.DETAILS.value, help="Detail of an app")
     app_detail_parser.add_argument("app_id", help="ID of the app", type=str)
 
+    # Versions of an App
+    versions_list_parser = apps_subparsers.add_parser(AppCommands.VERSIONS_LIST.value, help="List versions of an app")
+    versions_list_parser.add_argument("app_id", help="ID of the app", type=str)
+
+
     # List Release Channels
     release_channels_list_parser = apps_subparsers.add_parser(AppCommands.RELEASE_CHANNELS_LIST.value, help="List release channels of an app")
     release_channels_list_parser.add_argument("app_id", help="ID of the app", type=str)
@@ -43,6 +49,12 @@ def main():
     release_channel_detail_parser = apps_subparsers.add_parser(AppCommands.RELEASE_CHANNEL_DETAILS.value, help="Detail of a release channel")
     release_channel_detail_parser.add_argument("app_id", help="ID of the app", type=str)
     release_channel_detail_parser.add_argument("--release_channel_id", help="ID of the release channel", type=str)
+
+    # Set Version for Release Channel
+    release_channel_set_version_parser = apps_subparsers.add_parser(AppCommands.RELEASE_CHANNEL_SET_VERSION.value, help="Set version for a release channel")
+    release_channel_set_version_parser.add_argument("app_id", help="ID of the app", type=str)
+    release_channel_set_version_parser.add_argument("--release_channel_id", help="ID of the release channel", type=str)
+    release_channel_set_version_parser.add_argument("--version_id", help="ID of the version", type=str)
 
     # Upload and Create Version
     create_version_parser = apps_subparsers.add_parser(AppCommands.UPLOAD.value, help="Upload a new version of an app")
