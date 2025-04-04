@@ -4,10 +4,13 @@ This CLI tool provides commands for managing apps and files via the ArborXR API.
 
 ## Prerequisites
 
-Before using the CLI tool, ensure you have the following:
+Before using the CLI tool, you must perform the following:
 * Python 3 installed on your system.
-* An API Token for authentication. See this Knowledge Base article for how to generate an API token for CLI usage: https://help.arborxr.com/en/articles/6333187-cli-tool#h_f1b58ac24e
-* Setting the API token via:
+* An API Token for authentication
+    * Login to your ArborXR Account
+    * Navigate to Settings > Access Tokens
+    * Create an API Access Token for your organization
+* Setting the API token
     * The environment variable ABXR_API_TOKEN (or the alternative ARBORXR_ACCESS_TOKEN), or
     * The command line option --token.
 
