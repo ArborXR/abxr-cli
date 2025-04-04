@@ -181,27 +181,23 @@ These examples assume you have set the `ABXR_API_TOKEN` in your environment.
 
 ### Getting details of a specific app
 
-`abxr-cli apps details 12345`
+`abxr-cli apps details 123e4567-e89b-12d3-a456-426614174000`
 
 ### Listing versions of an app
 
-`abxr-cli apps versions 12345`
+`abxr-cli apps versions 123e4567-e89b-12d3-a456-426614174000`
 
 ### Uploading a new version of an app
 
-`abxr-cli apps upload 12345 /path/to/app.apk --version 1.2.3 --notes "Bug fixes and performance improvements"`
+`abxr-cli apps upload 123e4567-e89b-12d3-a456-426614174000 /path/to/app.apk --version 1.2.3 --notes "Bug fixes and performance improvements"`
 
 ### Sharing an app with an organization
 
-`abxr-cli apps share 12345 --release_channel_id 6789 --organization_slug myorg`
+`abxr-cli apps share 123e4567-e89b-12d3-a456-426614174000 --release_channel_id 6789 --organization_slug myorg`
 
 ### Listing all files
 
 `abxr-cli files list`
-
-### Uploading a file with a specified device path
-
-`abxr-cli files upload /path/to/file.txt --path /device/path/file.txt`
 
 
 ## Error Handling
