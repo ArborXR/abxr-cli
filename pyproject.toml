@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "abxrcli"
-version = "0.9.1"
+version = "0.9.2"
 description = "ArborXR CLI"
 readme = "README.md"
 authors = [{ name = "Peter Peterson", email = "peter@arborxr.com" }]
