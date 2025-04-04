@@ -14,35 +14,12 @@ Before using the CLI tool, you must perform the following:
     * The environment variable ABXR_API_TOKEN (or the alternative ARBORXR_ACCESS_TOKEN), or
     * The command line option --token.
 
-## Project Setup
+## Setup
 
-### Clone the Repository
+ArborXR CLI is available through PyPI. If you have `pip` installed, you can get the latest version by installing via:
 ```
-git clone https://github.com/arborxr/abxr-cli.git
-cd abxr-cli
+pip install abxrcli
 ```
-
-### Create and Activate a Virtual Environment
-For best practices, create a virtual environment to isolate your dependencies:
-
-```
-python3 -m venv venv
-source venv/bin/activate 
-```
-*On Windows virtual environment is activated differently*
-```
-venv\Scripts\activate
-```
-
-### Build and Install
-Run the build script to compile the necessary components, then install the CLI tool using the install script:
-
-```
-./build.sh
-./install.sh
-```
-
-Following these steps will ensure you have a clean, isolated environment you can execute the CLI in.
 
 ## Global Options
 
