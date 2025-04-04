@@ -14,7 +14,10 @@ setup(
         ]
     },
     install_requires = [
-        'setuptools'
+        'setuptools',
+        'requests',
+        'tqdm',
+        'pyyaml'
     ],
     include_package_data=True,
 )

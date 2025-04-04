@@ -10,7 +10,10 @@ readme = "README.md"
 authors = [{ name = "Peter Peterson", email = "peter@arborxr.com" }]
 
 dependencies = [
-    "setuptools"
+    "setuptools",
+    "requests",
+    "tqdm",
+    "pyyaml"
 ]
 
 [project.scripts]
