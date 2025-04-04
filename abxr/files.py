@@ -17,6 +17,7 @@ from abxr.formats import DataOutputFormats
 class Commands(Enum):
     LIST = "list"
     DETAILS = "details"
+    UPLOAD = "upload"
 
 class FilesService(ApiService):
     def __init__(self, base_url, token):

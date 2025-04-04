@@ -14,7 +14,7 @@ from abxr.apps import Commands as AppCommands, CommandHandler as AppsCommandHand
 from abxr.files import Commands as FileCommands, CommandHandler as FilesCommandHandler
 
 ABXR_API_URL = os.environ.get("ABXR_API_URL", "https://api.xrdm.app/api/v2")
-ABXR_API_TOKEN = os.environ.get("ABXR_API_TOKEN")
+ABXR_API_TOKEN = os.environ.get("ABXR_API_TOKEN") or os.environ.get("ARBORXR_ACCESS_TOKEN")
 
 
 def main():
@@ -37,7 +37,7 @@ def main():
     app_detail_parser.add_argument("app_id", help="ID of the app", type=str)
 
     # Versions of an App
-    versions_list_parser = apps_subparsers.add_parser(AppCommands.VERSIONS_LIST.value, help="List versions of an app")
+    versions_list_parser = apps_subparsers.add_parser(AppCommands.VERSION_LIST.value, help="List versions of an app")
     versions_list_parser.add_argument("app_id", help="ID of the app", type=str)
 
 
@@ -84,6 +84,11 @@ def main():
     # Detail of File
     file_detail_parser = files_subparsers.add_parser(FileCommands.DETAILS.value, help="Detail of a file")
     file_detail_parser.add_argument("file_id", help="ID of the file", type=str)
+
+    # Upload a file
+    upload_file_parser = files_subparsers.add_parser(FileCommands.UPLOAD.value, help="Upload a file")
+    upload_file_parser.add_argument("filename", help="Local path of the file to upload", type=str)
+    upload_file_parser.add_argument("-p", "--path", help="Path of the file on the device", type=str)
 
     args = parser.parse_args()
 
