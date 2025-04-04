@@ -14,6 +14,7 @@ setup(
         ]
     },
     install_requires = [
+        'setuptools'
     ],
     include_package_data=True,
 )
