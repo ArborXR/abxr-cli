@@ -14,8 +14,10 @@ Before using the CLI tool, ensure you have the following:
 ## Project Setup
 
 ### Clone the Repository
+```
 git clone https://github.com/arborxr/abxr-cli.git
 cd abxr-cli
+```
 
 ### Create and Activate a Virtual Environment
 For best practices, create a virtual environment to isolate your dependencies:
