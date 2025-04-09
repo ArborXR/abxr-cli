@@ -6,6 +6,7 @@
 
 import requests
 import yaml
+import json
 from tqdm import tqdm
 
 from enum import Enum
@@ -219,7 +220,7 @@ class CommandHandler:
             apps_list = self.service.get_all_apps()
 
             if self.args.format == DataOutputFormats.JSON.value:
-                print(apps_list)
+                print(json.dumps(apps_list))
             elif self.args.format == DataOutputFormats.YAML.value:
                 print(yaml.dump(apps_list))
             else:
@@ -229,7 +230,7 @@ class CommandHandler:
             app_detail = self.service.get_app_detail(self.args.app_id)
 
             if self.args.format == DataOutputFormats.JSON.value:
-                print(app_detail)
+                print(json.dumps(app_detail))
             elif self.args.format == DataOutputFormats.YAML.value:
                 print(yaml.dump(app_detail))
             else:
@@ -239,7 +240,7 @@ class CommandHandler:
             release_channels = self.service.get_all_release_channels_for_app(self.args.app_id)
 
             if self.args.format == DataOutputFormats.JSON.value:
-                print(release_channels)
+                print(json.dumps(release_channels))
             elif self.args.format == DataOutputFormats.YAML.value:
                 print(yaml.dump(release_channels))
             else:
@@ -249,7 +250,7 @@ class CommandHandler:
             release_channel_detail = self.service.get_release_channel_detail(self.args.app_id, self.args.release_channel_id)
 
             if self.args.format == DataOutputFormats.JSON.value:
-                print(release_channel_detail)
+                print(json.dumps(release_channel_detail))
             elif self.args.format == DataOutputFormats.YAML.value:
                 print(yaml.dump(release_channel_detail))
             else:
@@ -259,7 +260,7 @@ class CommandHandler:
             versions = self.service.get_all_versions_for_app(self.args.app_id)
 
             if self.args.format == DataOutputFormats.JSON.value:
-                print(versions)
+                print(json.dumps(versions))
             elif self.args.format == DataOutputFormats.YAML.value:
                 print(yaml.dump(versions))
             else:
