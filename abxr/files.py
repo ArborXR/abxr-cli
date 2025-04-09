@@ -6,6 +6,7 @@
 
 import requests
 import yaml
+import json
 from tqdm import tqdm
 
 from enum import Enum
@@ -61,7 +62,7 @@ class CommandHandler:
             files_list = self.service.get_all_files()
 
             if self.args.format == DataOutputFormats.JSON.value:
-                print(files_list)
+                print(json.dumps(files_list))
             elif self.args.format == DataOutputFormats.YAML.value:
                 print(yaml.dump(files_list))
             else:
@@ -71,7 +72,7 @@ class CommandHandler:
             file_detail = self.service.get_file_detail(self.args.file_id)
 
             if self.args.format == DataOutputFormats.JSON.value:
-                print(file_detail)
+                print(json.dumps(file_detail))
             elif self.args.format == DataOutputFormats.YAML.value:
                 print(yaml.dump(file_detail))
             else:
