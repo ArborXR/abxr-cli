@@ -67,9 +67,7 @@ class AppsService(ApiService):
         
         return response.json()
 
-    def upload_file(self, app_id, file_path, version, release_notes, show_progress_bar):
-        print(f"Uploading {file_path} to app_id {app_id}...")
-
+    def upload_file(self, app_id, file_path, version, release_notes, silent):
         file = MultipartFileS3(file_path)
 
         response = self._initiate_upload(app_id, file.file_name)
@@ -82,7 +80,7 @@ class AppsService(ApiService):
 
         uploaded_parts = []
 
-        with tqdm(total=file.get_size(), unit='B', unit_scale=True, desc=f'Uploading {file.file_name}', disable=not show_progress_bar) as pbar:
+        with tqdm(total=file.get_size(), unit='B', unit_scale=True, desc=f'Uploading {file.file_name}', disable=silent) as pbar:
             for i in range(0, len(part_numbers), self.MAX_PARTS_PER_REQUEST):
                 part_numbers_slice = part_numbers[i:i + self.MAX_PARTS_PER_REQUEST]
                 
@@ -189,8 +187,6 @@ class AppsService(ApiService):
         return response.json()
     
     def share_app(self, app_id, release_channel_id, organization_slug):
-        print(f"Sharing app_id {app_id} with release channel {release_channel_id} to org {organization_slug}...")
-
         url = f'{self.base_url}/apps/{app_id}/release-channels/{release_channel_id}/share'
         data = {'organizationSlug': organization_slug}
 
@@ -200,8 +196,6 @@ class AppsService(ApiService):
         return response.json()
     
     def revoke_shared_app(self, app_id, release_channel_id, organization_slug):
-        print(f"Revoking Share of app_id {app_id} with release channel {release_channel_id} to org {organization_slug}...")
-
         url = f'{self.base_url}/apps/{app_id}/release-channels/{release_channel_id}/share'
         data = {'organizationSlug': organization_slug}
 
@@ -270,7 +264,7 @@ class CommandHandler:
             self.service.set_version_for_release_channel(self.args.app_id, self.args.release_channel_id, self.args.version_id)
 
         elif self.args.apps_command == Commands.UPLOAD.value:
-            app_version = self.service.upload_file(self.args.app_id, self.args.filename, self.args.version, self.args.notes, self.args.progress)
+            app_version = self.service.upload_file(self.args.app_id, self.args.filename, self.args.version, self.args.notes, self.args.silent)
 
             if self.args.format == DataOutputFormats.JSON.value:
                 print(json.dumps(app_version))

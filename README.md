@@ -40,8 +40,8 @@ pip install abxrcli
 `-v, --version`
 * Description: Show the CLI tool version and exit
 
-`-p, --progress`
-* Description: Show the progress bar for file uploads or longer operations. Default = false
+`-s, --silent`
+* Description: Disable any terminal printing of progress bars for longer operations, like file uploads.
 
 ## Command Groups
 

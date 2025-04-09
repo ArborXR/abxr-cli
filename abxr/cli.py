@@ -22,7 +22,7 @@ def main():
     parser.add_argument("-u", "--url", help="API Base URL", type=str, default=ABXR_API_URL)
     parser.add_argument("-t", "--token", help="API Token", type=str, default=ABXR_API_TOKEN)
     parser.add_argument("-f", "--format", help="Data Output format", type=str, choices=[DataOutputFormats.JSON.value, DataOutputFormats.YAML.value], default=DataOutputFormats.YAML.value)
-    parser.add_argument("-p", "--progress", help="Show progress when uploading files", action="store_false")
+    parser.add_argument("-s", "--silent", help="Hides progress bars or other messages not to intefere with return value processing from stdout", action="store_true")
     parser.add_argument('-v', '--version', action='version', version=f'%(prog)s {version}')
 
     subparsers = parser.add_subparsers(dest="command", help="Sub-command help")
