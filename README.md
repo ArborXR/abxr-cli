@@ -40,6 +40,9 @@ pip install abxrcli
 `-v, --version`
 * Description: Show the CLI tool version and exit
 
+`-p, --progress`
+* Description: Show the progress bar for file uploads or longer operations. Default = false
+
 ## Command Groups
 
 The CLI tool is divided into two main groups: apps and files. Each group has its own set of subcommands.

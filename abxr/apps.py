@@ -67,7 +67,7 @@ class AppsService(ApiService):
         
         return response.json()
 
-    def upload_file(self, app_id, file_path, version, release_notes):
+    def upload_file(self, app_id, file_path, version, release_notes, show_progress_bar):
         print(f"Uploading {file_path} to app_id {app_id}...")
 
         file = MultipartFileS3(file_path)
@@ -82,7 +82,7 @@ class AppsService(ApiService):
 
         uploaded_parts = []
 
-        with tqdm(total=file.get_size(), unit='B', unit_scale=True, desc=f'Uploading {file.file_name}') as pbar:
+        with tqdm(total=file.get_size(), unit='B', unit_scale=True, desc=f'Uploading {file.file_name}', disable=not show_progress_bar) as pbar:
             for i in range(0, len(part_numbers), self.MAX_PARTS_PER_REQUEST):
                 part_numbers_slice = part_numbers[i:i + self.MAX_PARTS_PER_REQUEST]
                 
@@ -270,7 +270,14 @@ class CommandHandler:
             self.service.set_version_for_release_channel(self.args.app_id, self.args.release_channel_id, self.args.version_id)
 
         elif self.args.apps_command == Commands.UPLOAD.value:
-            self.service.upload_file(self.args.app_id, self.args.filename, self.args.version, self.args.notes)
+            app_version = self.service.upload_file(self.args.app_id, self.args.filename, self.args.version, self.args.notes, self.args.progress)
+
+            if self.args.format == DataOutputFormats.JSON.value:
+                print(json.dumps(app_version))
+            elif self.args.format == DataOutputFormats.YAML.value:
+                print(yaml.dump(app_version))
+            else:
+                print("Invalid output format.")
 
         elif self.args.apps_command == Commands.SHARE.value:
             self.service.share_app(self.args.app_id, self.args.release_channel_id, self.args.organization_slug)
