@@ -16,6 +16,7 @@ from abxr.multipart import MultipartFileS3
 from abxr.formats import DataOutputFormats
 
 class Commands(Enum):
+    VERSIONS_LIST = "list"
     UPLOAD = "upload"
     RELEASE_CHANNELS_LIST = "release_channels"
     RELEASE_CHANNEL_DETAILS = "release_channel_details"
@@ -160,6 +161,26 @@ class SystemAppsService(ApiService):
 
         return response.json()
     
+    def get_all_app_versions_by_type(self, app_type):
+        url = f'{self.base_url}/apps/{app_type}/versions?per_page=20'
+
+        response = requests.get(url, headers=self.headers)
+        response.raise_for_status()
+
+        json = response.json()
+
+        data = json['data']
+
+        if json['links']:
+            while json['links']['next']:
+                response = requests.get(json['links']['next'], headers=self.headers)
+                response.raise_for_status()
+                json = response.json()
+
+                data += json['data']
+
+        return data
+    
 
 class CommandHandler:
     def __init__(self, args):
@@ -167,7 +188,17 @@ class CommandHandler:
         self.service = SystemAppsService(self.args.url, self.args.token)
 
     def run(self):
-        if self.args.apps_command == Commands.RELEASE_CHANNELS_LIST.value:
+        if self.args.system_apps_command == Commands.VERSIONS_LIST.value:
+            app_versions = self.service.get_all_app_versions_by_type(self.args.app_type)
+
+            if self.args.format == DataOutputFormats.JSON.value:
+                print(json.dumps(app_versions))
+            elif self.args.format == DataOutputFormats.YAML.value:
+                print(yaml.dump(app_versions))
+            else:
+                print("Invalid output format.")
+
+        elif self.args.system_apps_command == Commands.RELEASE_CHANNELS_LIST.value:
             release_channels = self.service.get_all_release_channels_for_app(self.args.app_type)
 
             if self.args.format == DataOutputFormats.JSON.value:
@@ -177,7 +208,7 @@ class CommandHandler:
             else:
                 print("Invalid output format.")
 
-        elif self.args.apps_command == Commands.RELEASE_CHANNEL_DETAILS.value:
+        elif self.args.system_apps_command == Commands.RELEASE_CHANNEL_DETAILS.value:
             release_channel_detail = self.service.get_release_channel_detail(self.args.app_type, self.args.release_channel_id)
 
             if self.args.format == DataOutputFormats.JSON.value:
@@ -187,7 +218,7 @@ class CommandHandler:
             else:
                 print("Invalid output format.")
 
-        elif self.args.apps_command == Commands.APP_COMPATIBILITIES.value:
+        elif self.args.system_apps_command == Commands.APP_COMPATIBILITIES.value:
             app_compatibilities = self.service.get_all_app_compatibilities_for_app(self.args.app_type)
 
             if self.args.format == DataOutputFormats.JSON.value:
@@ -197,7 +228,7 @@ class CommandHandler:
             else:
                 print("Invalid output format.")
 
-        elif self.args.apps_command == Commands.APP_COMPATIBILITY_DETAILS.value:
+        elif self.args.system_apps_command == Commands.APP_COMPATIBILITY_DETAILS.value:
             app_compatibility_detail = self.service.get_app_compatibility_detail(self.args.app_type, self.args.app_compatibility_id)
 
             if self.args.format == DataOutputFormats.JSON.value:
@@ -207,7 +238,7 @@ class CommandHandler:
             else:
                 print("Invalid output format.")
 
-        elif self.args.apps_command == Commands.UPLOAD.value:
+        elif self.args.system_apps_command == Commands.UPLOAD.value:
             app_version = self.service.upload_file(self.args.app_type, self.args.filename, self.args.release_channel_id, self.args.release_channel_name, self.args.app_compatibility_id, self.args.version, self.args.notes, self.args.silent)
 
             if self.args.format == DataOutputFormats.JSON.value:

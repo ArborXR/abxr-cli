@@ -117,6 +117,10 @@ def main():
     system_apps_parser = subparsers.add_parser("system_apps", help="System Apps command")
     system_apps_subparsers = system_apps_parser.add_subparsers(dest="system_apps_command", help="System Apps command help")
 
+    # List All System App Versions
+    system_apps_list_parser = system_apps_subparsers.add_parser(SystemAppCommands.VERSIONS_LIST.value, help="List system app versions")
+    system_apps_list_parser.add_argument("app_type", help="Type of the system app (e.g., 'client', 'home')", type=str)
+
     # Upload System App
     upload_system_app_parser = system_apps_subparsers.add_parser(SystemAppCommands.UPLOAD.value, help="Upload a system app")
     upload_system_app_parser.add_argument("app_type", help="Type of the system app (e.g., 'client', 'home')", type=str)
