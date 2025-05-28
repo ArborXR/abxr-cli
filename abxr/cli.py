@@ -105,7 +105,7 @@ def main():
     device_detail_parser.add_argument("device_id", help="ID of the device", type=str)
 
     # Launch App on Device
-    launch_app_parser = devices_subparsers.add_parser(DeviceCommands.LAUNCH.value, help="Launch an app on a device")
+    launch_app_parser = devices_subparsers.add_parser(DeviceCommands.LAUNCH_APP.value, help="Launch an app on a device")
     launch_app_parser.add_argument("device_id", help="ID of the device", type=str)
     launch_app_parser.add_argument("--app_id", help="ID of the app", type=str)
 
