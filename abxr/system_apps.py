@@ -106,7 +106,7 @@ class SystemAppsService(ApiService):
             return complete_response
         
     def get_all_release_channels_for_app(self, app_type):
-        url = f'{self.base_url}/apps/{app_type}/release-channels'
+        url = f'{self.base_url}/apps/{app_type}/release-channels?per_page=20'
 
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
@@ -134,7 +134,7 @@ class SystemAppsService(ApiService):
         return response.json()
     
     def get_all_app_compatibilities_for_app(self, app_type):
-        url = f'{self.base_url}/apps/{app_type}/app-compatibilities'
+        url = f'{self.base_url}/apps/{app_type}/app-compatibilities?per_page=20'
 
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
