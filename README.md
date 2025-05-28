@@ -153,6 +153,44 @@ These commands are used for file-related operations.
 	* <file_id>: The unique identifier of the file.
 * Description: Get detailed information for a specific file.
 
+### Devices Commands
+
+These commands are used for device-related operations
+
+#### Subcommands
+
+##### list
+* Usage:
+`abxr-cli devices list`
+* Description: List all devices
+
+
+##### details
+* Usage:
+`abxr-cli devices details <device_id>`
+* Positional Argument:
+    * <device_id>: The unique identifier for the device.
+* Description: Get detailed information about a device.
+
+
+##### launch
+* Usage:
+`abxr-cli devices launch <device_id> --app_id=<app_id>`
+* Positional Argument:
+    * <device_id>: The unique identifier for the device.
+* Required Options:
+    * --app_id: The unique identifier of the application you want to launch
+* Description: Launch an application immediately on a device.
+
+
+##### reboot
+* Usage:
+`abxr-cli devices reboot <device_id>`
+* Positional Argument:
+    * <device_id>: The unique identifier for the device.
+* Description: Reboot a device immediately.
+
+
 
 ## CLI Usage Examples
 
