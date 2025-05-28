@@ -12,6 +12,8 @@ from abxr.formats import DataOutputFormats
 
 from abxr.apps import Commands as AppCommands, CommandHandler as AppsCommandHandler
 from abxr.files import Commands as FileCommands, CommandHandler as FilesCommandHandler
+from abxr.devices import Commands as DeviceCommands, CommandHandler as DevicesCommandHandler
+from abxr.system_apps import Commands as SystemAppCommands, CommandHandler as SystemAppsCommandHandler
 
 ABXR_API_URL = os.environ.get("ABXR_API_URL", "https://api.xrdm.app/api/v2")
 ABXR_API_TOKEN = os.environ.get("ABXR_API_TOKEN") or os.environ.get("ARBORXR_ACCESS_TOKEN")
@@ -91,6 +93,58 @@ def main():
     upload_file_parser.add_argument("filename", help="Local path of the file to upload", type=str)
     upload_file_parser.add_argument("-p", "--path", help="Path of the file on the device", type=str)
 
+    # Devices
+    devices_parser = subparsers.add_parser("devices", help="Devices command")
+    devices_subparsers = devices_parser.add_subparsers(dest="devices_command", help="Devices command help")
+
+    # List All Devices
+    devices_list_parser = devices_subparsers.add_parser(DeviceCommands.LIST.value, help="List devices")
+
+    # Detail of Device
+    device_detail_parser = devices_subparsers.add_parser(DeviceCommands.DETAILS.value, help="Detail of a device")
+    device_detail_parser.add_argument("device_id", help="ID of the device", type=str)
+
+    # Launch App on Device
+    launch_app_parser = devices_subparsers.add_parser(DeviceCommands.LAUNCH.value, help="Launch an app on a device")
+    launch_app_parser.add_argument("device_id", help="ID of the device", type=str)
+    launch_app_parser.add_argument("--app_id", help="ID of the app", type=str)
+
+    # Reboot Device
+    reboot_device_parser = devices_subparsers.add_parser(DeviceCommands.REBOOT.value, help="Reboot a device")
+    reboot_device_parser.add_argument("device_id", help="ID of the device", type=str)
+
+    # System Apps
+    system_apps_parser = subparsers.add_parser("system_apps", help="System Apps command")
+    system_apps_subparsers = system_apps_parser.add_subparsers(dest="system_apps_command", help="System Apps command help")
+
+    # Upload System App
+    upload_system_app_parser = system_apps_subparsers.add_parser(SystemAppCommands.UPLOAD.value, help="Upload a system app")
+    upload_system_app_parser.add_argument("app_type", help="Type of the system app (e.g., 'client', 'home')", type=str)
+    upload_system_app_parser.add_argument("filename", help="Local path of the APK to upload", type=str)
+    upload_system_app_parser.add_argument("-v", "--version", help="Version Number (APK can override this value)", type=str)
+    upload_system_app_parser.add_argument("-n", "--notes", help="Release Notes", type=str)
+    upload_system_app_parser.add_argument("--release_channel_id", help="ID of the release channel to upload to", type=str)
+    upload_system_app_parser.add_argument("--release_channel_name", help="Name of the release channel to upload to", type=str)
+    upload_system_app_parser.add_argument("--app_compatibility_id", help="ID of the app compatibility to upload to", type=str)
+    
+    # List Release Channels for System App
+    release_channels_list_system_parser = system_apps_subparsers.add_parser(SystemAppCommands.RELEASE_CHANNELS_LIST.value, help="List release channels for a system app")
+    release_channels_list_system_parser.add_argument("app_type", help="Type of the system app (e.g., 'client', 'home')", type=str)
+
+    # Detail of Release Channel for System App
+    release_channel_detail_system_parser = system_apps_subparsers.add_parser(SystemAppCommands.RELEASE_CHANNEL_DETAILS.value, help="Detail of a release channel for a system app")
+    release_channel_detail_system_parser.add_argument("app_type", help="Type of the system app (e.g., 'client', 'home')", type=str)
+    release_channel_detail_system_parser.add_argument("--release_channel_id", help="ID of the release channel", type=str)
+
+    # List App Compatibilities for System App
+    app_compatibilities_list_system_parser = system_apps_subparsers.add_parser(SystemAppCommands.APP_COMPATIBILITIES.value, help="List app compatibilities for a system app")
+    app_compatibilities_list_system_parser.add_argument("app_type", help="Type of the system app (e.g., 'client', 'home')", type=str)
+
+    # Detail of App Compatibility for System App
+    app_compatibility_detail_system_parser = system_apps_subparsers.add_parser(SystemAppCommands.APP_COMPATIBILITY_DETAILS.value, help="Detail of an app compatibility for a system app")
+    app_compatibility_detail_system_parser.add_argument("app_type", help="Type of the system app (e.g., 'client', 'home')", type=str)
+    app_compatibility_detail_system_parser.add_argument("--app_compatibility_id", help="ID of the app compatibility", type=str)
+
     args = parser.parse_args()
 
     if args.url is None:
@@ -107,6 +161,14 @@ def main():
 
     elif args.command == "files":
         handler = FilesCommandHandler(args)
+        handler.run()
+
+    elif args.command == "devices":
+        handler = DevicesCommandHandler(args)
+        handler.run()
+
+    elif args.command == "system_apps":
+        handler = SystemAppsCommandHandler(args)
         handler.run()
         
 
