@@ -180,10 +180,15 @@ These commands are used for device-related operations
     * <device_id>: The unique identifier for the device.
 * Required Options:
     * --app_id: The unique identifier of the application you want to launch
-* Description: Launch an application immediately on a device
+* Description: Launch an application immediately on a device.
 
 
 ##### reboot
+* Usage:
+`abxr-cli devices reboot <device_id>`
+* Positional Argument:
+    * <device_id>: The unique identifier for the device.
+* Description: Reboot a device immediately.
 
 
 
