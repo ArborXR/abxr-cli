@@ -127,9 +127,9 @@ def main():
     upload_system_app_parser.add_argument("filename", help="Local path of the APK to upload", type=str)
     upload_system_app_parser.add_argument("-v", "--version", help="Version Number (APK can override this value)", type=str)
     upload_system_app_parser.add_argument("-n", "--notes", help="Release Notes", type=str)
+    upload_system_app_parser.add_argument("--app_compatibility_id", help="ID of the app compatibility to upload to", type=str)
     upload_system_app_parser.add_argument("--release_channel_id", help="ID of the release channel to upload to", type=str)
     upload_system_app_parser.add_argument("--release_channel_name", help="Name of the release channel to upload to", type=str)
-    upload_system_app_parser.add_argument("--app_compatibility_id", help="ID of the app compatibility to upload to", type=str)
     
     # List Release Channels for System App
     release_channels_list_system_parser = system_apps_subparsers.add_parser(SystemAppCommands.RELEASE_CHANNELS_LIST.value, help="List release channels for a system app")

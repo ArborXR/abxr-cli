@@ -33,14 +33,20 @@ class SystemAppsService(ApiService):
 
         super().__init__(base_url, token)
 
-    def _initiate_upload(self, app_type, file_name, release_channel_id=None, new_release_channel_title=None, app_compatibility_id=None):
+    def _initiate_upload(self, app_type, file_name, release_channel_id, new_release_channel_title, app_compatibility_id):
         url = f'{self.base_url}/apps/{app_type}/versions'
+        
         data = {'filename': file_name,
-                'releaseChannelId': release_channel_id,
-                'newReleaseChannelTitle': new_release_channel_title,
                 'appCompatibilityId': app_compatibility_id
                 }
         
+        if release_channel_id:
+            data['releaseChannelId'] = release_channel_id
+        elif new_release_channel_title:
+            data['newReleaseChannelTitle'] = new_release_channel_title
+        else:
+            raise ValueError("Either release_channel_id or new_release_channel_title must be provided.")
+
         response = requests.post(url, json=data, headers=self.headers)
         response.raise_for_status()
         
@@ -72,10 +78,10 @@ class SystemAppsService(ApiService):
         
         return response.json()
 
-    def upload_file(self, app_type, file_path, version, release_notes, silent):
+    def upload_file(self, app_type, file_path, release_channel_id, new_release_channel_title, app_compatibility_id, version, release_notes, silent):
         file = MultipartFileS3(file_path)
 
-        response = self._initiate_upload(app_type, file.file_name)
+        response = self._initiate_upload(app_type, file.file_name, release_channel_id, new_release_channel_title, app_compatibility_id)
 
         upload_id = response['uploadId']
         key = response['key']
