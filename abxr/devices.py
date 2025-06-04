@@ -77,7 +77,7 @@ class CommandHandler:
         self.service = DevicesService(self.args.url, self.args.token)
 
     def run(self):
-        if self.args.apps_command == Commands.LIST.value:            
+        if self.args.devices_command == Commands.LIST.value:            
             devices_list = self.service.get_all_devices()
 
             if self.args.format == DataOutputFormats.JSON.value:
@@ -87,7 +87,7 @@ class CommandHandler:
             else:
                 print("Invalid output format.")
 
-        elif self.args.apps_command == Commands.DETAILS.value:
+        elif self.args.devices_command == Commands.DETAILS.value:
             device_detail = self.service.get_device_detail(self.args.device_id)
 
             if self.args.format == DataOutputFormats.JSON.value:
@@ -97,9 +97,9 @@ class CommandHandler:
             else:
                 print("Invalid output format.")
 
-        elif self.args.apps_command == Commands.LAUNCH_APP.value:
+        elif self.args.devices_command == Commands.LAUNCH_APP.value:
             self.service.launch_app(self.args.device_id, self.args.app_id)
 
-        elif self.args.apps_command == Commands.REBOOT.value:
+        elif self.args.devices_command == Commands.REBOOT.value:
             self.service.reboot_device(self.args.device_id)
 
