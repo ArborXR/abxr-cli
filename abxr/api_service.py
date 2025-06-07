@@ -8,6 +8,7 @@ class ApiService:
         self.base_url = base_url
         self.headers = {
             'Authorization': f'Bearer {token}',
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
         }
 
