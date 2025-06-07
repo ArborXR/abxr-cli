@@ -6,6 +6,7 @@
 
 import argparse
 import os
+from requests import HTTPError
 
 from abxr.version import version
 from abxr.formats import DataOutputFormats
@@ -159,21 +160,34 @@ def main():
         print("API Token is required. Please set the ABXR_API_TOKEN environment variable or use the --token command line param.")
         exit(1)
 
-    if args.command == "apps":
-        handler = AppsCommandHandler(args)
-        handler.run()
+    try:
+        if args.command == "apps":
+            handler = AppsCommandHandler(args)
+            handler.run()
 
-    elif args.command == "files":
-        handler = FilesCommandHandler(args)
-        handler.run()
+        elif args.command == "files":
+            handler = FilesCommandHandler(args)
+            handler.run()
 
-    elif args.command == "devices":
-        handler = DevicesCommandHandler(args)
-        handler.run()
+        elif args.command == "devices":
+            handler = DevicesCommandHandler(args)
+            handler.run()
 
-    elif args.command == "system_apps":
-        handler = SystemAppsCommandHandler(args)
-        handler.run()
+        elif args.command == "system_apps":
+            handler = SystemAppsCommandHandler(args)
+            handler.run()
+    
+    except HTTPError as e:
+        if e.response is not None and e.response.status_code == 401:
+            print("Unauthorized: Invalid API Token.")
+            exit(1)
+        else:
+            print(f"HTTP Error: {e}")
+            exit(1)
+    
+    except Exception as e:
+        print(f"Error: {e}")
+        exit(1)
         
 
 if __name__ == "__main__":
