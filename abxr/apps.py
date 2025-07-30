@@ -67,7 +67,7 @@ class AppsService(ApiService):
         
         return response.json()
 
-    def upload_file(self, app_id, file_path, version, release_notes, silent):
+    def upload_file(self, app_id, file_path, version_number, release_notes, silent):
         file = MultipartFileS3(file_path)
 
         response = self._initiate_upload(app_id, file.file_name)
@@ -97,7 +97,7 @@ class AppsService(ApiService):
                     uploaded_parts += [{'partNumber': part_number, 'eTag': response.headers['ETag']}]
                     pbar.update(len(part))
                 
-            complete_response = self._complete_upload(app_id, version_id, upload_id, key, uploaded_parts, version, release_notes)
+            complete_response = self._complete_upload(app_id, version_id, upload_id, key, uploaded_parts, version_number, release_notes)
             return complete_response
         
     def get_all_apps(self):
@@ -264,7 +264,7 @@ class CommandHandler:
             self.service.set_version_for_release_channel(self.args.app_id, self.args.release_channel_id, self.args.version_id)
 
         elif self.args.apps_command == Commands.UPLOAD.value:
-            app_version = self.service.upload_file(self.args.app_id, self.args.filename, self.args.version, self.args.notes, self.args.silent)
+            app_version = self.service.upload_file(self.args.app_id, self.args.filename, self.args.version_number, self.args.notes, self.args.silent)
 
             if self.args.format == DataOutputFormats.JSON.value:
                 print(json.dumps(app_version))

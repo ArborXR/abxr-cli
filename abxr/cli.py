@@ -24,7 +24,7 @@ def main():
     parser.add_argument("-u", "--url", help="API Base URL", type=str, default=ABXR_API_URL)
     parser.add_argument("-t", "--token", help="API Token", type=str, default=ABXR_API_TOKEN)
     parser.add_argument("-f", "--format", help="Data Output format", type=str, choices=[DataOutputFormats.JSON.value, DataOutputFormats.YAML.value], default=DataOutputFormats.YAML.value)
-    parser.add_argument("-s", "--silent", help="Hides progress bars or other messages not to intefere with return value processing from stdout", action="store_true")
+    parser.add_argument("-s", "--silent", help="Hides progress bars or other messages not to interfere with return value processing from stdout", action="store_true")
     parser.add_argument('-v', '--version', action='version', version=f'%(prog)s {version}')
 
     subparsers = parser.add_subparsers(dest="command", help="Sub-command help")
@@ -51,19 +51,19 @@ def main():
     # Detail of Release Channel
     release_channel_detail_parser = apps_subparsers.add_parser(AppCommands.RELEASE_CHANNEL_DETAILS.value, help="Detail of a release channel")
     release_channel_detail_parser.add_argument("app_id", help="ID of the app", type=str)
-    release_channel_detail_parser.add_argument("--release_channel_id", help="ID of the release channel", type=str)
+    release_channel_detail_parser.add_argument("--release_channel_id", help="ID of the release channel", type=str, required=True)
 
     # Set Version for Release Channel
     release_channel_set_version_parser = apps_subparsers.add_parser(AppCommands.RELEASE_CHANNEL_SET_VERSION.value, help="Set version for a release channel")
     release_channel_set_version_parser.add_argument("app_id", help="ID of the app", type=str)
-    release_channel_set_version_parser.add_argument("--release_channel_id", help="ID of the release channel", type=str)
-    release_channel_set_version_parser.add_argument("--version_id", help="ID of the version", type=str)
+    release_channel_set_version_parser.add_argument("--release_channel_id", help="ID of the release channel", type=str, required=True)
+    release_channel_set_version_parser.add_argument("--version_id", help="ID of the version", type=str, required=True)
 
     # Upload and Create Version
     create_version_parser = apps_subparsers.add_parser(AppCommands.UPLOAD.value, help="Upload a new version of an app")
     create_version_parser.add_argument("app_id", help="ID of the app", type=str)
     create_version_parser.add_argument("filename", help="Local path of the APK to upload", type=str)
-    create_version_parser.add_argument("-v", "--version", help="Version Number (APK can override this value)", type=str)
+    create_version_parser.add_argument("--version_number", help="Version Number (APK can override this value)", type=str)
     create_version_parser.add_argument("-n", "--notes", help="Release Notes", type=str)
 
     # Sharing Apps
@@ -91,7 +91,7 @@ def main():
     # Upload a file
     upload_file_parser = files_subparsers.add_parser(FileCommands.UPLOAD.value, help="Upload a file")
     upload_file_parser.add_argument("filename", help="Local path of the file to upload", type=str)
-    upload_file_parser.add_argument("-p", "--path", help="Path of the file on the device", type=str)
+    upload_file_parser.add_argument("-p", "--path", help="Path of the file on the device", type=str, required=True)
 
     # Devices
     devices_parser = subparsers.add_parser("devices", help="Devices command")
@@ -107,7 +107,7 @@ def main():
     # Launch App on Device
     launch_app_parser = devices_subparsers.add_parser(DeviceCommands.LAUNCH_APP.value, help="Launch an app on a device")
     launch_app_parser.add_argument("device_id", help="ID of the device", type=str)
-    launch_app_parser.add_argument("--app_id", help="ID of the app", type=str)
+    launch_app_parser.add_argument("--app_id", help="ID of the app", type=str, required=True)
 
     # Reboot Device
     reboot_device_parser = devices_subparsers.add_parser(DeviceCommands.REBOOT.value, help="Reboot a device")
@@ -125,11 +125,10 @@ def main():
     upload_system_app_parser = system_apps_subparsers.add_parser(SystemAppCommands.UPLOAD.value, help="Upload a system app")
     upload_system_app_parser.add_argument("app_type", help="Type of the system app (e.g., 'client', 'home')", type=str)
     upload_system_app_parser.add_argument("filename", help="Local path of the APK to upload", type=str)
-    upload_system_app_parser.add_argument("-v", "--version", help="Version Number (APK can override this value)", type=str)
+    upload_system_app_parser.add_argument("--version_number", help="Version Number (APK can override this value)", type=str)
     upload_system_app_parser.add_argument("-n", "--notes", help="Release Notes", type=str)
-    upload_system_app_parser.add_argument("--app_compatibility_id", help="ID of the app compatibility to upload to", type=str)
-    upload_system_app_parser.add_argument("--release_channel_id", help="ID of the release channel to upload to", type=str)
-    upload_system_app_parser.add_argument("--release_channel_name", help="Name of the release channel to upload to", type=str)
+    upload_system_app_parser.add_argument("--app_compatibility_name", help="Name of the app compatibility (e.g: armeabi-v7a)", type=str, required=True)
+    upload_system_app_parser.add_argument("--release_channel_name", help="Name of the release channel to upload to. Omitting will default to Latest", type=str)
     
     # List Release Channels for System App
     release_channels_list_system_parser = system_apps_subparsers.add_parser(SystemAppCommands.RELEASE_CHANNELS_LIST.value, help="List release channels for a system app")
@@ -138,7 +137,7 @@ def main():
     # Detail of Release Channel for System App
     release_channel_detail_system_parser = system_apps_subparsers.add_parser(SystemAppCommands.RELEASE_CHANNEL_DETAILS.value, help="Detail of a release channel for a system app")
     release_channel_detail_system_parser.add_argument("app_type", help="Type of the system app (e.g., 'client', 'home')", type=str)
-    release_channel_detail_system_parser.add_argument("--release_channel_id", help="ID of the release channel", type=str)
+    release_channel_detail_system_parser.add_argument("--release_channel_id", help="ID of the release channel", type=str, required=True)
 
     # List App Compatibilities for System App
     app_compatibilities_list_system_parser = system_apps_subparsers.add_parser(SystemAppCommands.APP_COMPATIBILITIES.value, help="List app compatibilities for a system app")
@@ -147,7 +146,7 @@ def main():
     # Detail of App Compatibility for System App
     app_compatibility_detail_system_parser = system_apps_subparsers.add_parser(SystemAppCommands.APP_COMPATIBILITY_DETAILS.value, help="Detail of an app compatibility for a system app")
     app_compatibility_detail_system_parser.add_argument("app_type", help="Type of the system app (e.g., 'client', 'home')", type=str)
-    app_compatibility_detail_system_parser.add_argument("--app_compatibility_id", help="ID of the app compatibility", type=str)
+    app_compatibility_detail_system_parser.add_argument("--app_compatibility_id", help="ID of the app compatibility", type=str, required=True)
 
     args = parser.parse_args()
 
