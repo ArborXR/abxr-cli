@@ -44,7 +44,6 @@ def main():
     versions_list_parser = apps_subparsers.add_parser(AppCommands.VERSION_LIST.value, help="List versions of an app")
     versions_list_parser.add_argument("app_id", help="ID of the app", type=str)
 
-
     # List Release Channels
     release_channels_list_parser = apps_subparsers.add_parser(AppCommands.RELEASE_CHANNELS_LIST.value, help="List release channels of an app")
     release_channels_list_parser.add_argument("app_id", help="ID of the app", type=str)
@@ -83,16 +82,40 @@ def main():
     files_subparsers = files_parser.add_subparsers(dest="files_command", help="Files command help")
 
     # List All Files
-    files_list_parser = files_subparsers.add_parser(FileCommands.LIST.value, help="List files")
+    files_list_parser = files_subparsers.add_parser(FileCommands.LIST.value, help="List all files in content library")
 
     # Detail of File
-    file_detail_parser = files_subparsers.add_parser(FileCommands.DETAILS.value, help="Detail of a file")
+    file_detail_parser = files_subparsers.add_parser(FileCommands.DETAILS.value, help="Detail of an uploaded file")
     file_detail_parser.add_argument("file_id", help="ID of the file", type=str)
 
     # Upload a file
     upload_file_parser = files_subparsers.add_parser(FileCommands.UPLOAD.value, help="Upload a file")
     upload_file_parser.add_argument("filename", help="Local path of the file to upload", type=str)
-    upload_file_parser.add_argument("-p", "--path", help="Path of the file on the device", type=str, required=True)
+    upload_file_parser.add_argument("--device_path", help="Desired path of the file on the device", type=str, required=True)
+
+    # List All Files Assigned to a Device
+    files_device_list_parser = files_subparsers.add_parser(FileCommands.DEVICE_LIST.value, help="List files assigned to a device")
+    files_device_list_parser.add_argument("device_id", help="ID of the device", type=str)
+
+    # Assign a File to a Device
+    files_device_assign_parser = files_subparsers.add_parser(FileCommands.DEVICE_ASSIGN.value, help="Assign a file to a device")
+    files_device_assign_parser.add_argument("device_id", help="ID of the device", type=str)
+    files_device_assign_parser.add_argument("--file_id", help="ID of the file to assign", type=str, required=True)
+
+    # Remove a File from a Device
+    files_device_remove_parser = files_subparsers.add_parser(FileCommands.DEVICE_REMOVE.value, help="Remove a file from a device")
+    files_device_remove_parser.add_argument("device_id", help="ID of the device", type=str)
+    files_device_remove_parser.add_argument("--file_id", help="ID of the file to remove", type=str, required=True)
+
+    # Assign a File to a Device Group
+    files_device_group_assign_parser = files_subparsers.add_parser(FileCommands.GROUP_ASSIGN.value, help="Assign a file to a group")
+    files_device_group_assign_parser.add_argument("group_id", help="ID of the device group", type=str)
+    files_device_group_assign_parser.add_argument("--file_id", help="ID of the file to assign", type=str, required=True)
+
+    # Remove a File from a Device Group
+    files_device_group_remove_parser = files_subparsers.add_parser(FileCommands.GROUP_REMOVE.value, help="Remove a file from a group")
+    files_device_group_remove_parser.add_argument("group_id", help="ID of the device group", type=str)
+    files_device_group_remove_parser.add_argument("--file_id", help="ID of the file to remove", type=str, required=True)
 
     # Devices
     devices_parser = subparsers.add_parser("devices", help="Devices command")
