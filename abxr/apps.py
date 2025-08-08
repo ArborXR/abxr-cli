@@ -101,6 +101,11 @@ class AppsService(ApiService):
             complete_response = self._complete_upload(app_id, version_id, upload_id, key, uploaded_parts, version_number, release_notes)
 
             total_time_sec = 0
+            wait_indefinitely = max_wait_time_sec <= 0
+
+            if wait_indefinitely:
+                max_wait_time_sec = 1
+
             status = None
 
             if wait:
@@ -116,8 +121,12 @@ class AppsService(ApiService):
                     else:
                         raise Exception(f"Version {version_id} not found for uploaded app {app_id}.")
                     
+                    pbar.set_description(f'Been waiting for upload to complete for {total_time_sec} seconds')
                     time.sleep(1)
                     total_time_sec += 1
+
+                    if wait_indefinitely:
+                        max_wait_time_sec += 1
 
             return complete_response
         
