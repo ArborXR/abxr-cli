@@ -65,6 +65,8 @@ def main():
     create_version_parser.add_argument("filename", help="Local path of the APK/ZIP (apk+obb) to upload", type=str)
     create_version_parser.add_argument("--version_number", help="Version Number (Uploaded APK can override this value)", type=str)
     create_version_parser.add_argument("-n", "--notes", help="Release Notes", type=str)
+    create_version_parser.add_argument("-w", "--wait", help="Wait for the upload to complete", action="store_true")
+    create_version_parser.add_argument("--wait_time", help="Maximum wait time in seconds for the upload to complete processing", type=int, default=60)
 
     # Sharing Apps
     share_parser = apps_subparsers.add_parser(AppCommands.SHARE.value, help="Share an app")
