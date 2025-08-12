@@ -62,8 +62,8 @@ def main():
     # Upload and Create Version
     create_version_parser = apps_subparsers.add_parser(AppCommands.UPLOAD.value, help="Upload a new version of an app")
     create_version_parser.add_argument("app_id", help="ID of the app", type=str)
-    create_version_parser.add_argument("filename", help="Local path of the APK to upload", type=str)
-    create_version_parser.add_argument("--version_number", help="Version Number (APK can override this value)", type=str)
+    create_version_parser.add_argument("filename", help="Local path of the APK/ZIP (apk+obb) to upload", type=str)
+    create_version_parser.add_argument("--version_number", help="Version Number (Uploaded APK can override this value)", type=str)
     create_version_parser.add_argument("-n", "--notes", help="Release Notes", type=str)
 
     # Sharing Apps

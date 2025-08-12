@@ -107,9 +107,9 @@ These commands manage app-related operations.
 `abxr-cli apps upload <app_id> <filename> [--version VERSION] [--notes NOTES]`
 * Positional Arguments:
     * <app_id>: The unique identifier of the app.
-	* <filename>: Local path of the APK file to upload.
+	* <filename>: Local path of the APK/ZIP (apk+obb) file to upload.
 * Optional Arguments:
-	* -v, --version: Version number (note that the APK itself can override this value).
+	* -v, --version: Version number (note that the Uploaded APK itself can override this value).
 	* -n, --notes: Release notes for the new version.
 * Description: Upload a new version of an app.
 
