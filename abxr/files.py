@@ -14,6 +14,7 @@ from enum import Enum
 from abxr.api_service import ApiService
 from abxr.multipart import MultipartFileS3
 from abxr.formats import DataOutputFormats
+from abxr.output import print_formatted
 
 class Commands(Enum):
     LIST = "list"
@@ -190,43 +191,19 @@ class CommandHandler:
     def run(self):
         if self.args.files_command == Commands.LIST.value:            
             files_list = self.service.get_all_files()
-
-            if self.args.format == DataOutputFormats.JSON.value:
-                print(json.dumps(files_list))
-            elif self.args.format == DataOutputFormats.YAML.value:
-                print(yaml.dump(files_list))
-            else:
-                print("Invalid output format.")
+            print_formatted(self.args.format, files_list)
 
         elif self.args.files_command == Commands.DETAILS.value:
             file_detail = self.service.get_file_detail(self.args.file_id)
-
-            if self.args.format == DataOutputFormats.JSON.value:
-                print(json.dumps(file_detail))
-            elif self.args.format == DataOutputFormats.YAML.value:
-                print(yaml.dump(file_detail))
-            else:
-                print("Invalid output format.")
+            print_formatted(self.args.format, file_detail)
 
         elif self.args.files_command == Commands.UPLOAD.value:
             file = self.service.upload_file(self.args.filename, self.args.device_path, self.args.silent)
-
-            if self.args.format == DataOutputFormats.JSON.value:
-                print(json.dumps(file))
-            elif self.args.format == DataOutputFormats.YAML.value:
-                print(yaml.dump(file))
-            else:
-                print("Invalid output format.")
+            print_formatted(self.args.format, file)
 
         elif self.args.files_command == Commands.DEVICE_LIST.value:
             device_files_list = self.service.get_all_device_files(self.args.device_id)
-            
-            if self.args.format == DataOutputFormats.JSON.value:
-                print(json.dumps(device_files_list))
-            elif self.args.format == DataOutputFormats.YAML.value:
-                print(yaml.dump(device_files_list))
-            else:
-                print("Invalid output format.")
+            print_formatted(self.args.format, device_files_list)
 
         elif self.args.files_command == Commands.DEVICE_ASSIGN.value:
             self.service.assign_file_to_device(self.args.file_id, self.args.device_id)
