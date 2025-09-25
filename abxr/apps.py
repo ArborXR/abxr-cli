@@ -15,6 +15,7 @@ from enum import Enum
 from abxr.api_service import ApiService
 from abxr.multipart import MultipartFileS3
 from abxr.formats import DataOutputFormats
+from abxr.output import print_formatted
 
 class Commands(Enum):
     LIST = "list"
@@ -242,66 +243,30 @@ class CommandHandler:
     def run(self):
         if self.args.apps_command == Commands.LIST.value:            
             apps_list = self.service.get_all_apps()
-
-            if self.args.format == DataOutputFormats.JSON.value:
-                print(json.dumps(apps_list))
-            elif self.args.format == DataOutputFormats.YAML.value:
-                print(yaml.dump(apps_list))
-            else:
-                print("Invalid output format.")
-
+            print_formatted(self.args.format, apps_list)
+            
         elif self.args.apps_command == Commands.DETAILS.value:
             app_detail = self.service.get_app_detail(self.args.app_id)
-
-            if self.args.format == DataOutputFormats.JSON.value:
-                print(json.dumps(app_detail))
-            elif self.args.format == DataOutputFormats.YAML.value:
-                print(yaml.dump(app_detail))
-            else:
-                print("Invalid output format.")
+            print_formatted(self.args.format, app_detail)
 
         elif self.args.apps_command == Commands.RELEASE_CHANNELS_LIST.value:
             release_channels = self.service.get_all_release_channels_for_app(self.args.app_id)
-
-            if self.args.format == DataOutputFormats.JSON.value:
-                print(json.dumps(release_channels))
-            elif self.args.format == DataOutputFormats.YAML.value:
-                print(yaml.dump(release_channels))
-            else:
-                print("Invalid output format.")
+            print_formatted(self.args.format, release_channels)
 
         elif self.args.apps_command == Commands.RELEASE_CHANNEL_DETAILS.value:
             release_channel_detail = self.service.get_release_channel_detail(self.args.app_id, self.args.release_channel_id)
-
-            if self.args.format == DataOutputFormats.JSON.value:
-                print(json.dumps(release_channel_detail))
-            elif self.args.format == DataOutputFormats.YAML.value:
-                print(yaml.dump(release_channel_detail))
-            else:
-                print("Invalid output format.")
+            print_formatted(self.args.format, release_channel_detail)
 
         elif self.args.apps_command == Commands.VERSION_LIST.value:
             versions = self.service.get_all_versions_for_app(self.args.app_id)
-
-            if self.args.format == DataOutputFormats.JSON.value:
-                print(json.dumps(versions))
-            elif self.args.format == DataOutputFormats.YAML.value:
-                print(yaml.dump(versions))
-            else:
-                print("Invalid output format.")
+            print_formatted(self.args.format, versions)
 
         elif self.args.apps_command == Commands.RELEASE_CHANNEL_SET_VERSION.value:
             self.service.set_version_for_release_channel(self.args.app_id, self.args.release_channel_id, self.args.version_id)
 
         elif self.args.apps_command == Commands.UPLOAD.value:
             app_version = self.service.upload_file(self.args.app_id, self.args.filename, self.args.version_number, self.args.notes, self.args.silent, self.args.wait, self.args.wait_time)
-
-            if self.args.format == DataOutputFormats.JSON.value:
-                print(json.dumps(app_version))
-            elif self.args.format == DataOutputFormats.YAML.value:
-                print(yaml.dump(app_version))
-            else:
-                print("Invalid output format.")
+            print_formatted(self.args.format, app_version)
 
         elif self.args.apps_command == Commands.SHARE.value:
             self.service.share_app(self.args.app_id, self.args.release_channel_id, self.args.organization_slug)

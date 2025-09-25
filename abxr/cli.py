@@ -15,6 +15,12 @@ from abxr.apps import Commands as AppCommands, CommandHandler as AppsCommandHand
 from abxr.files import Commands as FileCommands, CommandHandler as FilesCommandHandler
 from abxr.devices import Commands as DeviceCommands, CommandHandler as DevicesCommandHandler
 from abxr.system_apps import Commands as SystemAppCommands, CommandHandler as SystemAppsCommandHandler
+from abxr.org import Commands as OrgCommands, CommandHandler as OrgCommandHandler
+from abxr.audit_logs import Commands as AuditLogsCommands, CommandHandler as AuditLogsCommandHandler
+from abxr.groups import Commands as GroupsCommands, CommandHandler as GroupsCommandHandler
+from abxr.tags import Commands as TagsCommands, CommandHandler as TagsCommandHandler
+from abxr.users import Commands as UsersCommands, CommandHandler as UsersCommandHandler
+from abxr.videos import Commands as VideosCommands, CommandHandler as VideosCommandHandler
 
 ABXR_API_URL = os.environ.get("ABXR_API_URL", "https://api.xrdm.app/api/v2")
 ABXR_API_TOKEN = os.environ.get("ABXR_API_TOKEN") or os.environ.get("ARBORXR_ACCESS_TOKEN")
@@ -30,6 +36,13 @@ def main():
 
     subparsers = parser.add_subparsers(dest="command", help="Sub-command help")
 
+    # Org
+    org_parser = subparsers.add_parser("org", help="Organization command")
+    org_subparsers = org_parser.add_subparsers(dest="org_command", help="Organization command help")
+
+    org_info_parser = org_subparsers.add_parser(OrgCommands.INFO.value, help="Get organization info connected to API token")
+
+    # Apps
     apps_parser = subparsers.add_parser("apps", help="Apps command")
     apps_subparsers = apps_parser.add_subparsers(dest="apps_command", help="Apps command help")
 
@@ -37,7 +50,7 @@ def main():
     apps_list_parser = apps_subparsers.add_parser(AppCommands.LIST.value, help="List apps")
 
     # Detail of App
-    app_detail_parser = apps_subparsers.add_parser(AppCommands.DETAILS.value, help="Detail of an app")
+    app_detail_parser = apps_subparsers.add_parser(AppCommands.DETAILS.value, help="Get the details of an app")
     app_detail_parser.add_argument("app_id", help="ID of the app", type=str)
 
     # Versions of an App
@@ -80,6 +93,92 @@ def main():
     revoke_share_parser.add_argument("--release_channel_id", help="ID of the release channel to revoke", type=str, required=True)
     revoke_share_parser.add_argument("--organization_slug", help="Slug of the organization to revoke from", type=str, required=True)
 
+    ## Audit Logs
+    audit_logs_parser = subparsers.add_parser("audit_logs", help="Audit Logs command")
+    audit_logs_subparsers = audit_logs_parser.add_subparsers(dest="audit_logs_command", help="Audit Logs command help")
+
+    # List Audit Logs
+    audit_logs_list_parser = audit_logs_subparsers.add_parser(AuditLogsCommands.LIST.value, help="List all audit logs")
+    audit_logs_list_parser.add_argument("--search", help="Search term to filter audit logs. Searches across description, user name, user email, resource title, and IP address.", type=str)
+    audit_logs_list_parser.add_argument("--start_time", help="Filter audit logs to show only entries created at or after this timestamp (ISO 8601 Zulu format with millisecond precision).", type=str)
+    audit_logs_list_parser.add_argument("--end_time", help="Filter audit logs to show only entries created at or before this timestamp (ISO 8601 Zulu format with millisecond precision).", type=str)
+
+    ## Groups
+    groups_parser = subparsers.add_parser("groups", help="Groups command")
+    groups_subparsers = groups_parser.add_subparsers(dest="groups_command", help="Groups command help")
+
+    # List Groups
+    groups_list_parser = groups_subparsers.add_parser(GroupsCommands.LIST.value, help="List all groups")
+
+    # Create a new Group
+    groups_add_parser = groups_subparsers.add_parser(GroupsCommands.ADD.value, help="Create a new group")
+    groups_add_parser.add_argument("name", help="Name of the group", type=str)
+    groups_add_parser.add_argument("--parent_group_id", help="Parent ID of the group to attach to", type=str)
+
+    # Group Detail
+    groups_detail_parser = groups_subparsers.add_parser(GroupsCommands.DETAILS.value, help="Get details of a group")
+    groups_detail_parser.add_argument("group_id", help="ID of the group", type=str)
+
+    # Group Update
+    groups_update_parser = groups_subparsers.add_parser(GroupsCommands.UPDATE.value, help="Update a group")
+    groups_update_parser.add_argument("group_id", help="ID of the group", type=str)
+    groups_update_parser.add_argument("--name", help="New name of the group", type=str)
+    groups_update_parser.add_argument("--parent_group_id", help="New parent ID of the group", type=str)
+
+    # Group Delete
+    groups_delete_parser = groups_subparsers.add_parser(GroupsCommands.DELETE.value, help="Delete a group")
+    groups_delete_parser.add_argument("group_id", help="ID of the group", type=str)
+    groups_delete_parser.add_argument("--replacement_group_id", help="ID of replacement group to move child groups to (only allowed for unconfigured groups)", type=str)
+
+    # Group Configure
+    groups_configure_parser = groups_subparsers.add_parser(GroupsCommands.CONFIGURE.value, help="Configure a group (convert from unconfigured to configured state).")
+    groups_configure_parser.add_argument("group_id", help="ID of the group", type=str)
+
+    # Group Duplicate
+    groups_duplicate_parser = groups_subparsers.add_parser(GroupsCommands.DUPLICATE.value, help="Duplicate a group")
+    groups_duplicate_parser.add_argument("group_id", help="ID of the group to duplicate", type=str)
+    groups_duplicate_parser.add_argument("--name", help="New name for the duplicated group", type=str, required=True)
+
+    # List Release Channels assigned to a Group
+    groups_release_channels_list_parser = groups_subparsers.add_parser(GroupsCommands.RELEASE_CHANNELS_LIST.value, help="List release channels assigned to a group")
+    groups_release_channels_list_parser.add_argument("group_id", help="ID of the group", type=str)
+
+    # Assign a Release Channel to a Group
+    groups_release_channel_add_parser = groups_subparsers.add_parser(GroupsCommands.RELEASE_CHANNEL_ADD.value, help="Assign a release channel to a group")
+    groups_release_channel_add_parser.add_argument("group_id", help="ID of the group", type=str)
+    groups_release_channel_add_parser.add_argument("--release_channel_id", help="ID of the release channel to assign", type=str, required=True)
+
+    # Remove a Release Channel from a Group
+    groups_release_channel_remove_parser = groups_subparsers.add_parser(GroupsCommands.RELEASE_CHANNEL_REMOVE.value, help="Remove a release channel from a group")
+    groups_release_channel_remove_parser.add_argument("group_id", help="ID of the group", type=str)
+    groups_release_channel_remove_parser.add_argument("--release_channel_id", help="ID of the release channel to remove", type=str, required=True)
+
+    # Add a File to a Group
+    groups_files_add_parser = groups_subparsers.add_parser(GroupsCommands.FILES_ADD.value, help="Add a file to a group")
+    groups_files_add_parser.add_argument("group_id", help="ID of the group", type=str)
+    groups_files_add_parser.add_argument("--file_id", help="ID of the file to add", type=str, required=True)
+
+    # Remove a File from a Group
+    groups_files_remove_parser = groups_subparsers.add_parser(GroupsCommands.FILES_REMOVE.value, help="Remove a file from a group")
+    groups_files_remove_parser.add_argument("group_id", help="ID of the group", type=str)
+    groups_files_remove_parser.add_argument("--file_id", help="ID of the file to remove", type=str, required=True)
+
+    # Add a Video to a Group
+    groups_video_add_parser = groups_subparsers.add_parser(GroupsCommands.VIDEO_ADD.value, help="Add a video to a group")
+    groups_video_add_parser.add_argument("group_id", help="ID of the group", type=str)
+    groups_video_add_parser.add_argument("--video_id", help="ID of the video to add", type=str, required=True)
+
+    # Remove a Video from a Group
+    groups_video_remove_parser = groups_subparsers.add_parser(GroupsCommands.VIDEO_REMOVE.value, help="Remove a video from a group")
+    groups_video_remove_parser.add_argument("group_id", help="ID of the group", type=str)
+    groups_video_remove_parser.add_argument("--video_id", help="ID of the video to remove", type=str, required=True)
+
+    # Get Group Hierarchy
+    groups_hierarchy_detail_parser = groups_subparsers.add_parser(GroupsCommands.HIERARCHY_DETAIL.value, help="Get the full group hierarchy")
+
+    
+
+    ## Files
     files_parser = subparsers.add_parser("files", help="Files command")
     files_subparsers = files_parser.add_subparsers(dest="files_command", help="Files command help")
 
@@ -174,6 +273,99 @@ def main():
     app_compatibility_detail_system_parser.add_argument("app_type", help="Type of the system app (e.g., 'client', 'home')", type=str)
     app_compatibility_detail_system_parser.add_argument("--app_compatibility_id", help="ID of the app compatibility", type=str, required=True)
 
+    # Tags
+    tags_parser = subparsers.add_parser("tags", help="Tags command")
+    tags_subparsers = tags_parser.add_subparsers(dest="tags_command", help="Tags command help")
+
+    # List Tags
+    tags_list_parser = tags_subparsers.add_parser(TagsCommands.LIST.value, help="List all tags")
+
+    # Create Tag
+    tags_create_parser = tags_subparsers.add_parser(TagsCommands.CREATE.value, help="Create a new tag")
+    tags_create_parser.add_argument("--name", help="Name of the new tag", type=str, required=True)
+   
+    # Tag Details
+    tags_detail_parser = tags_subparsers.add_parser(TagsCommands.DETAIL.value, help="Get details of a tag")
+    tags_detail_parser.add_argument("tag_id", help="ID of the tag", type=str)
+   
+    # Update Tag
+    tags_update_parser = tags_subparsers.add_parser(TagsCommands.UPDATE.value, help="Update a tag")
+    tags_update_parser.add_argument("tag_id", help="ID of the tag", type=str)
+    tags_update_parser.add_argument("--name", help="New name for the tag", type=str, required=True)
+   
+    # Delete Tag
+    tags_delete_parser = tags_subparsers.add_parser(TagsCommands.DELETE.value, help="Delete a tag")
+    tags_delete_parser.add_argument("tag_id", help="ID of the tag", type=str)
+
+    # Users
+    users_parser = subparsers.add_parser("users", help="Users command")
+    users_subparsers = users_parser.add_subparsers(dest="users_command", help="Users command help")
+
+    # List Users
+    users_list_parser = users_subparsers.add_parser(UsersCommands.LIST.value, help="List all users")
+
+    # Create User
+    users_create_parser = users_subparsers.add_parser(UsersCommands.CREATE.value, help="Create a new user")
+    users_create_parser.add_argument("--first_name", help="First name of the new user", type=str, required=True)
+    users_create_parser.add_argument("--last_name", help="Last name of the new user", type=str, required=True)
+    users_create_parser.add_argument("--email", help="Email of the new user", type=str, required=True)
+
+    # User Details
+    users_detail_parser = users_subparsers.add_parser(UsersCommands.DETAILS.value, help="Get details of a user")
+    users_detail_parser.add_argument("user_id", help="ID of the user", type=str)
+
+    # Update User
+    users_update_parser = users_subparsers.add_parser(UsersCommands.UPDATE.value, help="Update a user")
+    users_update_parser.add_argument("user_id", help="ID of the user", type=str)
+    users_update_parser.add_argument("--first_name", help="New first name for the user", type=str)
+    users_update_parser.add_argument("--last_name", help="New last name for the user", type=str)
+
+    # Delete User
+    users_delete_parser = users_subparsers.add_parser(UsersCommands.DELETE.value, help="Delete a user")
+    users_delete_parser.add_argument("user_id", help="ID of the user", type=str)
+
+    # Videos
+    videos_parser = subparsers.add_parser("videos", help="Videos command")
+    videos_subparsers = videos_parser.add_subparsers(dest="videos_command", help="Videos command help")
+
+    # List All Videos
+    videos_list_parser = videos_subparsers.add_parser(VideosCommands.LIST.value, help="List all videos")
+
+    # Video Detail
+    videos_detail_parser = videos_subparsers.add_parser(VideosCommands.DETAILS.value, help="Get details of a video")
+    videos_detail_parser.add_argument("video_id", help="ID of the video", type=str)
+
+    # Update Video
+    videos_update_parser = videos_subparsers.add_parser(VideosCommands.UPDATE, help="Update the properties of a video")
+    videos_update_parser.add_argument("video_id", help="ID of the video", type=str)
+    videos_update_parser.add_argument("--name", help="Name of the video", type=str)
+    videos_update_parser.add_argument("--description", help="Description of the video", type=str)
+    videos_update_parser.add_argument("--video_type", help="Type of the video", type=str, choices=["ThreeSixty", "OneEighty", "TwoDimensional"])
+    videos_update_parser.add_argument("--video_mapping", help="Mapping of the video", type=str, choices=["EQUIRECTANGULAR", "CUBEMAP"])
+    videos_update_parser.add_argument("--video_display", help="Display of the video", type=str, choices=["Stereoscopic", "Monoscopic"])
+    videos_update_parser.add_argument("--video_packing", help="Packing of the video", type=str, choices=["TOP_BOTTOM", "LEFT_RIGHT"])
+    videos_update_parser.add_argument("--audio_encoding", help="Audio Encoding", type=str, choices=["UNKNOWN", "MONO", "STEREO", "TBE_8", "TBE_8_2", "TBE_6", "TBE_6_2", "TBE_4", "TBE_4_2", "TBE_8_PAIR_0", "TBE_8_PAIR_1", "TBE_8_PAIR_2", "TBE_8_PAIR_3", "TBE_CHANNEL_0", "TBE_CHANNEL_1", "TBE_CHANNEL_2", "TBE_CHANNEL_3", "TBE_CHANNEL_4", "TBE_CHANNEL_5", "TBE_CHANNEL_6", "TBE_CHANNEL_7", "HEADLOCKED_STEREO", "HEADLOCKED_CHANNEL_0", "HEADLOCKED_CHANNEL_1", "AMBIX_4", "AMBIX_4_2", "AMBIX_9", "AMBIX_9_2", "AMBIX_16", "AMBIX_16_2"])
+    videos_update_parser.add_argument("--tags", help="Tags to add to the video", type=list)
+
+    # Upload New Video
+    videos_upload_parser = videos_subparsers.add_parser(VideosCommands.UPLOAD.value, help="Upload a new video")
+    videos_upload_parser.add_argument("filename", help="Local path of the video file to upload", type=str)
+    videos_upload_parser.add_argument("--video_type", help="Type of the video", type=str, choices=["ThreeSixty", "OneEighty", "TwoDimensional"], required=True)
+    videos_upload_parser.add_argument("--video_mapping", help="Mapping of the video", type=str, choices=["EQUIRECTANGULAR", "CUBEMAP"])
+    videos_upload_parser.add_argument("--video_display", help="Display of the video", type=str, choices=["Stereoscopic", "Monoscopic"])
+    videos_upload_parser.add_argument("--video_packing", help="Packing of the video", type=str, choices=["TOP_BOTTOM", "LEFT_RIGHT"])
+    videos_upload_parser.add_argument("--audio_encoding", help="Audio Encoding", type=str, choices=["UNKNOWN", "MONO", "STEREO", "TBE_8", "TBE_8_2", "TBE_6", "TBE_6_2", "TBE_4", "TBE_4_2", "TBE_8_PAIR_0", "TBE_8_PAIR_1", "TBE_8_PAIR_2", "TBE_8_PAIR_3", "TBE_CHANNEL_0", "TBE_CHANNEL_1", "TBE_CHANNEL_2", "TBE_CHANNEL_3", "TBE_CHANNEL_4", "TBE_CHANNEL_5", "TBE_CHANNEL_6", "TBE_CHANNEL_7", "HEADLOCKED_STEREO", "HEADLOCKED_CHANNEL_0", "HEADLOCKED_CHANNEL_1", "AMBIX_4", "AMBIX_4_2", "AMBIX_9", "AMBIX_9_2", "AMBIX_16", "AMBIX_16_2"])
+
+    # Attach Tags to a video
+    videos_attach_tags_parser = videos_subparsers.add_parser(VideosCommands.ATTACH_TAGS.value, help="Attach tags to a video")
+    videos_attach_tags_parser.add_argument("video_id", help="ID of the video", type=str)
+    videos_attach_tags_parser.add_argument("--tags", help="Tags to add to the video", type=list, required=True)
+
+    # Detach Tags from a video
+    videos_detach_tags_parser = videos_subparsers.add_parser(VideosCommands.DETACH_TAGS, help="Detach tags from a video")
+    videos_detach_tags_parser.add_argument("video_id", help="ID of the video", type=str)
+    videos_detach_tags_parser.add_argument("--tags", help="Tags to remove from the video", type=list, required=True)
+
     args = parser.parse_args()
 
     if args.url is None:
@@ -189,6 +381,10 @@ def main():
             handler = AppsCommandHandler(args)
             handler.run()
 
+        elif args.command == "audit_logs":
+            handler = AuditLogsCommandHandler(args)
+            handler.run()
+
         elif args.command == "files":
             handler = FilesCommandHandler(args)
             handler.run()
@@ -197,8 +393,28 @@ def main():
             handler = DevicesCommandHandler(args)
             handler.run()
 
+        elif args.command == "groups":
+            handler = GroupsCommandHandler(args)
+            handler.run()
+
         elif args.command == "system_apps":
             handler = SystemAppsCommandHandler(args)
+            handler.run()
+
+        elif args.command == "org":
+            handler = OrgCommandHandler(args)
+            handler.run()
+
+        elif args.command == "tags":
+            handler = TagsCommandHandler(args)
+            handler.run()
+
+        elif args.command == "users":
+            handler = UsersCommandHandler(args)
+            handler.run()
+
+        elif args.command == "videos":
+            handler = VideosCommandHandler(args)
             handler.run()
     
     except HTTPError as e:
