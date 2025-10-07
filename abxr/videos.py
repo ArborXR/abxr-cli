@@ -4,9 +4,6 @@
 # Released under the MIT License. See LICENSE file for details.
 #
 
-import requests
-import yaml
-import json
 from tqdm import tqdm
 
 from enum import Enum
@@ -42,7 +39,7 @@ class VideosService(ApiService):
             'audioEncoding': audio_encoding
         }
         
-        response = requests.post(url, json=data, headers=self.headers)
+        response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
         
         return response.json()
@@ -55,7 +52,7 @@ class VideosService(ApiService):
                 'partNumbers': part_numbers 
                 }
         
-        response = requests.post(url, json=data, headers=self.headers)
+        response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
         
         return response.json()
@@ -67,7 +64,7 @@ class VideosService(ApiService):
                 'parts': parts
                 }
         
-        response = requests.post(url, json=data, headers=self.headers)
+        response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
         
         return response.json()
@@ -96,7 +93,7 @@ class VideosService(ApiService):
                     presigned_url = item['presignedUrl']
 
                     part = file.get_part(part_number)
-                    response = requests.put(presigned_url, data=part)
+                    response = self.client.put(presigned_url, data=part)
                     response.raise_for_status()
 
                     uploaded_parts += [{'partNumber': part_number, 'eTag': response.headers['ETag']}]
@@ -108,7 +105,7 @@ class VideosService(ApiService):
     def get_all_videos(self):
         url = f'{self.base_url}/videos?per_page=20'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         json = response.json()
@@ -117,7 +114,7 @@ class VideosService(ApiService):
 
         if json['links']:
             while json['links']['next']:
-                response = requests.get(json['links']['next'], headers=self.headers)
+                response = self.client.get(json['links']['next'], headers=self.headers)
                 response.raise_for_status()
                 json = response.json()
 
@@ -128,7 +125,7 @@ class VideosService(ApiService):
     def get_video_detail(self, video_id):
         url = f'{self.base_url}/videos/{video_id}'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
@@ -147,7 +144,7 @@ class VideosService(ApiService):
             'tags': tags
         }
 
-        response = requests.put(url, headers=self.headers, json=payload)
+        response = self.client.put(url, headers=self.headers, json=payload)
         response.raise_for_status()
 
         return response.json()
@@ -159,7 +156,7 @@ class VideosService(ApiService):
             'tags': tags
         }
 
-        response = requests.patch(url, headers=self.headers, json=payload)
+        response = self.client.patch(url, headers=self.headers, json=payload)
         response.raise_for_status()
         
         return response.json()
@@ -171,7 +168,7 @@ class VideosService(ApiService):
             'tags': tags
         }
 
-        response = requests.patch(url, headers=self.headers, json=payload)
+        response = self.client.patch(url, headers=self.headers, json=payload)
         response.raise_for_status()
         
         return response.json()

@@ -4,9 +4,6 @@
 # Released under the MIT License. See LICENSE file for details.
 #
 
-import requests
-import yaml
-import json
 from tqdm import tqdm
 
 from enum import Enum
@@ -14,6 +11,7 @@ from enum import Enum
 from abxr.api_service import ApiService
 from abxr.multipart import MultipartFileS3
 from abxr.formats import DataOutputFormats
+from abxr.output import print_formatted
 
 class Commands(Enum):
     VERSIONS_LIST = "list"
@@ -45,7 +43,7 @@ class SystemAppsService(ApiService):
         else:
             raise ValueError("release_channel_id must be provided.")
 
-        response = requests.post(url, json=data, headers=self.headers)
+        response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
         
         return response.json()
@@ -57,7 +55,7 @@ class SystemAppsService(ApiService):
                 'partNumbers': part_numbers 
                 }
         
-        response = requests.post(url, json=data, headers=self.headers)
+        response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
         
         return response.json()
@@ -71,7 +69,7 @@ class SystemAppsService(ApiService):
                 'releaseNotes': release_notes
                 }
         
-        response = requests.post(url, json=data, headers=self.headers)
+        response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
         
         return response.json()
@@ -122,7 +120,7 @@ class SystemAppsService(ApiService):
                     presigned_url = item['presignedUrl']
 
                     part = file.get_part(part_number)
-                    response = requests.put(presigned_url, data=part)
+                    response = self.client.put(presigned_url, data=part)
                     response.raise_for_status()
 
                     uploaded_parts += [{'partNumber': part_number, 'eTag': response.headers['ETag']}]
@@ -134,7 +132,7 @@ class SystemAppsService(ApiService):
     def get_all_release_channels_for_app(self, app_type):
         url = f'{self.base_url}/apps/{app_type}/release-channels?per_page=20'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         json = response.json()
@@ -142,7 +140,7 @@ class SystemAppsService(ApiService):
 
         if json['links']:
             while json['links']['next']:
-                response = requests.get(json['links']['next'], headers=self.headers)
+                response = self.client.get(json['links']['next'], headers=self.headers)
                 response.raise_for_status()
                 json = response.json()
 
@@ -153,7 +151,7 @@ class SystemAppsService(ApiService):
     def get_release_channel_detail(self, app_type, release_channel_id):
         url = f'{self.base_url}/apps/{app_type}/release-channels/{release_channel_id}'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
@@ -161,7 +159,7 @@ class SystemAppsService(ApiService):
     def get_all_app_compatibilities_for_app(self, app_type):
         url = f'{self.base_url}/apps/{app_type}/app-compatibilities?per_page=20'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         json = response.json()
@@ -170,7 +168,7 @@ class SystemAppsService(ApiService):
 
         if json['links']:
             while json['links']['next']:
-                response = requests.get(json['links']['next'], headers=self.headers)
+                response = self.client.get(json['links']['next'], headers=self.headers)
                 response.raise_for_status()
                 json = response.json()
 
@@ -181,7 +179,7 @@ class SystemAppsService(ApiService):
     def get_app_compatibility_detail(self, app_type, app_compatibility_id):
         url = f'{self.base_url}/apps/{app_type}/app-compatibilities/{app_compatibility_id}'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
@@ -189,7 +187,7 @@ class SystemAppsService(ApiService):
     def get_all_app_versions_by_type(self, app_type):
         url = f'{self.base_url}/apps/{app_type}/versions?per_page=20'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         json = response.json()
@@ -198,7 +196,7 @@ class SystemAppsService(ApiService):
 
         if json['links']:
             while json['links']['next']:
-                response = requests.get(json['links']['next'], headers=self.headers)
+                response = self.client.get(json['links']['next'], headers=self.headers)
                 response.raise_for_status()
                 json = response.json()
 
@@ -215,60 +213,25 @@ class CommandHandler:
     def run(self):
         if self.args.system_apps_command == Commands.VERSIONS_LIST.value:
             app_versions = self.service.get_all_app_versions_by_type(self.args.app_type)
-
-            if self.args.format == DataOutputFormats.JSON.value:
-                print(json.dumps(app_versions))
-            elif self.args.format == DataOutputFormats.YAML.value:
-                print(yaml.dump(app_versions))
-            else:
-                print("Invalid output format.")
+            print_formatted(self.args.format, app_versions)
 
         elif self.args.system_apps_command == Commands.RELEASE_CHANNELS_LIST.value:
             release_channels = self.service.get_all_release_channels_for_app(self.args.app_type)
-
-            if self.args.format == DataOutputFormats.JSON.value:
-                print(json.dumps(release_channels))
-            elif self.args.format == DataOutputFormats.YAML.value:
-                print(yaml.dump(release_channels))
-            else:
-                print("Invalid output format.")
+            print_formatted(self.args.format, release_channels)
 
         elif self.args.system_apps_command == Commands.RELEASE_CHANNEL_DETAILS.value:
             release_channel_detail = self.service.get_release_channel_detail(self.args.app_type, self.args.release_channel_id)
-
-            if self.args.format == DataOutputFormats.JSON.value:
-                print(json.dumps(release_channel_detail))
-            elif self.args.format == DataOutputFormats.YAML.value:
-                print(yaml.dump(release_channel_detail))
-            else:
-                print("Invalid output format.")
+            print_formatted(self.args.format, release_channel_detail)
 
         elif self.args.system_apps_command == Commands.APP_COMPATIBILITIES.value:
             app_compatibilities = self.service.get_all_app_compatibilities_for_app(self.args.app_type)
-
-            if self.args.format == DataOutputFormats.JSON.value:
-                print(json.dumps(app_compatibilities))
-            elif self.args.format == DataOutputFormats.YAML.value:
-                print(yaml.dump(app_compatibilities))
-            else:
-                print("Invalid output format.")
+            print_formatted(self.args.format, app_compatibilities)
 
         elif self.args.system_apps_command == Commands.APP_COMPATIBILITY_DETAILS.value:
             app_compatibility_detail = self.service.get_app_compatibility_detail(self.args.app_type, self.args.app_compatibility_id)
-
-            if self.args.format == DataOutputFormats.JSON.value:
-                print(json.dumps(app_compatibility_detail))
-            elif self.args.format == DataOutputFormats.YAML.value:
-                print(yaml.dump(app_compatibility_detail))
-            else:
-                print("Invalid output format.")
+            print_formatted(self.args.format, app_compatibility_detail)
 
         elif self.args.system_apps_command == Commands.UPLOAD.value:
             app_version = self.service.upload_file(self.args.app_type, self.args.filename, self.args.release_channel_name, self.args.app_compatibility_name, self.args.version_number, self.args.notes, self.args.silent)
+            print_formatted(self.args.format, app_version)
 
-            if self.args.format == DataOutputFormats.JSON.value:
-                print(json.dumps(app_version))
-            elif self.args.format == DataOutputFormats.YAML.value:
-                print(yaml.dump(app_version))
-            else:
-                print("Invalid output format.")
