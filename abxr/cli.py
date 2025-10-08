@@ -12,6 +12,7 @@ from abxr.version import version
 from abxr.formats import DataOutputFormats
 
 from abxr.apps import Commands as AppCommands, CommandHandler as AppsCommandHandler
+from abxr.app_bundles import Commands as AppBundlesCommands, CommandHandler as AppBundlesCommandHandler
 from abxr.files import Commands as FileCommands, CommandHandler as FilesCommandHandler
 from abxr.devices import Commands as DeviceCommands, CommandHandler as DevicesCommandHandler
 from abxr.system_apps import Commands as SystemAppCommands, CommandHandler as SystemAppsCommandHandler
@@ -366,6 +367,22 @@ def main():
     videos_detach_tags_parser.add_argument("video_id", help="ID of the video", type=str)
     videos_detach_tags_parser.add_argument("--tags", help="Tags to remove from the video", type=list, required=True)
 
+    # App Bundles
+    app_bundles_parser = subparsers.add_parser("app_bundles", help="App Bundles command")
+    app_bundles_subparsers = app_bundles_parser.add_subparsers(dest="app_bundles_command", help="App Bundles command help")
+
+    # Upload and finalize app bundle
+    app_bundles_upload_parser = app_bundles_subparsers.add_parser(AppBundlesCommands.UPLOAD.value, help="Upload APK/ZIP from folder and create finalized app bundle")
+    app_bundles_upload_parser.add_argument("app_id", help="ID of the app", type=str)
+    app_bundles_upload_parser.add_argument("folder_path", help="Path to folder containing APK or ZIP file", type=str)
+    app_bundles_upload_parser.add_argument("--bundle_name", help="Name for the app bundle", type=str, required=True)
+    app_bundles_upload_parser.add_argument("--version_number", help="Version number (APK can override this value)", type=str)
+    app_bundles_upload_parser.add_argument("-n", "--notes", help="Release notes", type=str)
+
+    # Get app bundle details
+    app_bundles_details_parser = app_bundles_subparsers.add_parser(AppBundlesCommands.DETAILS.value, help="Get details of an app bundle")
+    app_bundles_details_parser.add_argument("app_bundle_id", help="ID of the app bundle", type=str)
+
     args = parser.parse_args()
 
     if args.url is None:
@@ -416,7 +433,11 @@ def main():
         elif args.command == "videos":
             handler = VideosCommandHandler(args)
             handler.run()
-    
+
+        elif args.command == "app_bundles":
+            handler = AppBundlesCommandHandler(args)
+            handler.run()
+
     except HTTPError as e:
         if e.response is not None and e.response.status_code == 401:
             print("Unauthorized: Invalid API Token.")
