@@ -31,13 +31,16 @@ class AppsService(ApiService):
     def __init__(self, base_url, token):
         super().__init__(base_url, token)
 
-    def _initiate_upload(self, app_id, file_name):
+    def _initiate_upload(self, app_id, file_name, app_bundle_name=None):
         url = f'{self.base_url}/apps/{app_id}/versions'
         data = {'filename': file_name}
-        
+
+        if app_bundle_name:
+            data['appBundleName'] = app_bundle_name
+
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
-        
+
         return response.json()
 
     def _presigned_url(self, app_id, version_id, upload_id, key, part_numbers):
@@ -66,14 +69,15 @@ class AppsService(ApiService):
         
         return response.json()
 
-    def upload_file(self, app_id, file_path, version_number, release_notes, silent, wait, max_wait_time_sec=60):
+    def upload_file(self, app_id, file_path, version_number, release_notes, silent, wait, max_wait_time_sec=60, app_bundle_name=None):
         file = MultipartFileS3(file_path)
 
-        response = self._initiate_upload(app_id, file.file_name)
+        response = self._initiate_upload(app_id, file.file_name, app_bundle_name)
 
         upload_id = response['uploadId']
         key = response['key']
         version_id = response['versionId']
+        app_bundle_id = response.get('appBundleId')  # Capture bundle ID if created
 
         part_numbers = list(range(1, file.get_part_numbers() + 1))
 
@@ -125,6 +129,10 @@ class AppsService(ApiService):
 
                     if wait_indefinitely:
                         max_wait_time_sec += 1
+
+            # Include appBundleId in response if it was created
+            if app_bundle_id:
+                complete_response['appBundleId'] = app_bundle_id
 
             return complete_response
         
