@@ -27,15 +27,18 @@ class FilesService(ApiService):
     def __init__(self, base_url, token):
         super().__init__(base_url, token)
 
-    def _initiate_upload(self, file_name, device_path):
+    def _initiate_upload(self, file_name, device_path, app_bundle_id=None):
         url = f'{self.base_url}/files'
         data = {'filename': file_name,
                 'path': device_path
                 }
-        
+
+        if app_bundle_id:
+            data['appBundleId'] = app_bundle_id
+
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
-        
+
         return response.json()
 
     def _presigned_url(self, file_id, upload_id, key, part_numbers):
@@ -63,10 +66,10 @@ class FilesService(ApiService):
         
         return response.json()
 
-    def upload_file(self, file_path, device_path, silent):
+    def upload_file(self, file_path, device_path, silent, app_bundle_id=None):
         file = MultipartFileS3(file_path)
 
-        response = self._initiate_upload(file.file_name, device_path)
+        response = self._initiate_upload(file.file_name, device_path, app_bundle_id)
 
         upload_id = response['uploadId']
         key = response['key']
@@ -79,9 +82,9 @@ class FilesService(ApiService):
         with tqdm(total=file.get_size(), unit='B', unit_scale=True, desc=f'Uploading {file.file_name}', disable=silent) as pbar:
             for i in range(0, len(part_numbers), self.MAX_PARTS_PER_REQUEST):
                 part_numbers_slice = part_numbers[i:i + self.MAX_PARTS_PER_REQUEST]
-                
+
                 presigned_url_response = self._presigned_url(file_id, upload_id, key, part_numbers_slice)
-                
+
                 for item in presigned_url_response:
                     part_number = item['partNumber']
                     presigned_url = item['presignedUrl']
@@ -92,7 +95,7 @@ class FilesService(ApiService):
 
                     uploaded_parts += [{'partNumber': part_number, 'eTag': response.headers['ETag']}]
                     pbar.update(len(part))
-                
+
             complete_response = self._complete_upload(file_id, upload_id, key, uploaded_parts)
             return complete_response
 
