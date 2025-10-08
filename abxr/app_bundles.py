@@ -20,11 +20,13 @@ from abxr.output import print_formatted
 class Commands(Enum):
     LIST = "list"             # List app bundles for an app
     DETAILS = "details"       # Get details of a specific app bundle
-    CREATE = "create"         # Create a new app bundle
-    ADD_FILES = "add_files"   # Add files to an app bundle
     UPLOAD = "upload"         # Upload a new bundle version
+    ADD_FILES = "add_files"   # Add files to an app bundle
+    FINALIZE = "finalize"     # Finalize an app bundle
 
 class AppBundlesService(ApiService):
+    MAX_PARTS_PER_REQUEST = 4
+
     def __init__(self, base_url, token):
         super().__init__(base_url, token)
 
@@ -97,22 +99,6 @@ class AppBundlesService(ApiService):
 
         return data
     
-    def create_app_bundle(self, app_build_id, name, files=None):
-        """Create a new app bundle from an existing app version"""
-        url = f'{self.base_url}/app-bundles'
-        
-        data = {
-            'appBuildId': app_build_id,
-            'appBundleName': name
-        }
-
-        if files:
-
-        
-        response = self.client.post(url, json=data, headers=self.headers)
-        response.raise_for_status()
-        
-        return response.json()
     
     def add_files_to_app_bundle(self, app_bundle_id, files):
         """Add files to an existing app bundle
@@ -257,11 +243,62 @@ class AppBundlesService(ApiService):
             'result': result
         }
     
-    def upload_app_bundle(self, app_id, name, path):
-        #
-        #
-        #
-        pass
+    def upload_app_bundle(self, app_id, folder_path, bundle_name, version_number, release_notes, silent):
+        """Upload APK/ZIP from folder and finalize bundle in one operation"""
+        from abxr.apps import AppsService
+        from pathlib import Path
+
+        # Find single APK or ZIP file in folder root
+        folder = Path(folder_path)
+        if not folder.is_dir():
+            raise ValueError(f"Folder path does not exist: {folder_path}")
+
+        apk_files = list(folder.glob('*.apk'))
+        zip_files = list(folder.glob('*.zip'))
+        build_files = apk_files + zip_files
+
+        if len(build_files) == 0:
+            raise ValueError(f"No APK or ZIP file found in folder: {folder_path}")
+        elif len(build_files) > 1:
+            raise ValueError(f"Multiple APK/ZIP files found in folder. Expected exactly one. Found: {[f.name for f in build_files]}")
+
+        build_file = build_files[0]
+
+        if not silent:
+            print(f"Found build file: {build_file.name}")
+
+        # Upload the build with bundle name
+        apps_service = AppsService(self.base_url, self.headers['Authorization'].replace('Bearer ', ''))
+
+        if not silent:
+            print(f"Uploading build and creating bundle '{bundle_name}'...")
+
+        upload_response = apps_service.upload_file(
+            app_id,
+            str(build_file),
+            version_number,
+            release_notes,
+            silent,
+            wait=False,
+            app_bundle_name=bundle_name
+        )
+
+        # Extract app bundle ID from response
+        app_bundle_id = upload_response.get('appBundleId')
+        if not app_bundle_id:
+            raise ValueError("No appBundleId returned from upload. Bundle may not have been created.")
+
+        if not silent:
+            print(f"Bundle created with ID: {app_bundle_id}")
+            print(f"Finalizing bundle...")
+
+        # Finalize the bundle
+        finalize_response = self.finalize_app_bundle(app_bundle_id)
+
+        if not silent:
+            print(f"Bundle finalized successfully")
+
+        return finalize_response
 
 
 class CommandHandler:
@@ -270,31 +307,29 @@ class CommandHandler:
         self.service = AppBundlesService(self.args.url, self.args.token)
 
     def run(self):
-        if self.args.app_bundles_command == Commands.LIST.value:            
-            app_bundles = self.service.get_all_app_bundles_for_app(self.args.app_id, self.args.status)
-            print_formatted(self.args.format, app_bundles)
-            
+        if self.args.app_bundles_command == Commands.UPLOAD.value:
+            result = self.service.upload_app_bundle(
+                self.args.app_id,
+                self.args.folder_path,
+                self.args.bundle_name,
+                self.args.version_number,
+                self.args.notes,
+                self.args.silent
+            )
+            print_formatted(self.args.format, result)
+
+        elif self.args.app_bundles_command == Commands.FINALIZE.value:
+            result = self.service.finalize_app_bundle(self.args.app_bundle_id)
+            print_formatted(self.args.format, result)
+
         elif self.args.app_bundles_command == Commands.DETAILS.value:
             app_bundle_detail = self.service.get_app_bundle_detail(self.args.app_bundle_id)
             print_formatted(self.args.format, app_bundle_detail)
 
-        elif self.args.app_bundles_command == Commands.FILE_LIST.value:
-            if hasattr(self.args, 'app_bundle_id'):
-                # Get files for a specific app bundle
-                files = self.service.get_all_files_for_app_bundle(self.args.app_bundle_id)
-            else:
-                # Get all bundled files for an app
-                files = self.service.get_all_bundled_files_for_app(self.args.app_id)
-            print_formatted(self.args.format, files)
-        
-        elif self.args.app_bundles_command == Commands.CREATE.value:
-            app_bundle = self.service.create_app_bundle(
-                self.args.app_build_id,
-                self.args.name,
-                self.args.files
-            )
-            print_formatted(self.args.format, app_bundle)
-            
+        elif self.args.app_bundles_command == Commands.LIST.value:
+            app_bundles = self.service.get_all_app_bundles_for_app(self.args.app_id, self.args.status)
+            print_formatted(self.args.format, app_bundles)
+
         elif self.args.app_bundles_command == Commands.ADD_FILES.value:
             files = []
             for file_item in self.args.files:
@@ -303,14 +338,6 @@ class CommandHandler:
                 if len(file_parts) > 1:
                     file_dict['path'] = file_parts[1]
                 files.append(file_dict)
-                
+
             result = self.service.add_files_to_app_bundle(self.args.app_bundle_id, files)
             print_formatted(self.args.format, result)
-            
-        elif self.args.app_bundles_command == Commands.UPLOAD.value:
-            app_bundle = self.service.upload_app_bundle(
-                self.args.app_id,
-                self.args.name,
-                self.args.path
-            )
-            print_formatted(self.args.format, app_bundle)
