@@ -96,27 +96,7 @@ class AppBundlesService(ApiService):
                 data += json_data['data']
 
         return data
-    
-    def get_all_bundled_files_for_app(self, app_id):
-        """Get all bundled files for an app"""
-        url = f'{self.base_url}/apps/{app_id}/files?per_page=20'
 
-        response = self.client.get(url, headers=self.headers)
-        response.raise_for_status()
-
-        json_data = response.json()
-        data = json_data['data']
-
-        if json_data.get('links') and 'next' in json_data['links']:
-            while json_data['links']['next']:
-                response = self.client.get(json_data['links']['next'], headers=self.headers)
-                response.raise_for_status()
-                json_data = response.json()
-                data += json_data['data']
-
-        return data
-    
-    
     def add_files_to_app_bundle(self, app_bundle_id, files):
         """Add files to an existing app bundle
         
