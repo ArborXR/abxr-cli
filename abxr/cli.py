@@ -379,9 +379,19 @@ def main():
     app_bundles_upload_parser.add_argument("--version_number", help="Version number (APK can override this value)", type=str)
     app_bundles_upload_parser.add_argument("-n", "--notes", help="Release notes", type=str)
 
+    # List app bundles for an app
+    app_bundles_list_parser = app_bundles_subparsers.add_parser(AppBundlesCommands.LIST.value, help="List app bundles for an app")
+    app_bundles_list_parser.add_argument("app_id", help="ID of the app", type=str)
+    app_bundles_list_parser.add_argument("--status", help="Filter by status (pending, processing, failed, available)", type=str)
+
     # Get app bundle details
     app_bundles_details_parser = app_bundles_subparsers.add_parser(AppBundlesCommands.DETAILS.value, help="Get details of an app bundle")
     app_bundles_details_parser.add_argument("app_bundle_id", help="ID of the app bundle", type=str)
+
+    # Resume a failed or interrupted app bundle upload
+    app_bundles_resume_parser = app_bundles_subparsers.add_parser(AppBundlesCommands.RESUME.value, help="Resume a failed or interrupted bundle upload")
+    app_bundles_resume_parser.add_argument("bundle_id", help="ID of the bundle to resume", type=str)
+    app_bundles_resume_parser.add_argument("folder_path", help="Path to folder with bundle files", type=str)
 
     args = parser.parse_args()
 
