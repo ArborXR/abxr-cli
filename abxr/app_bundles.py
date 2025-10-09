@@ -306,7 +306,7 @@ class AppBundlesService(ApiService):
         else:
             # Build doesn't exist - upload it
             if not silent:
-                print(f"Build not found, uploading new build and creating bundle '{bundle_name}'...")
+                print(f"Existing build not found, uploading new build and creating bundle '{bundle_name}'...")
 
             upload_response = apps_service.upload_file(
                 app_id,
@@ -328,7 +328,16 @@ class AppBundlesService(ApiService):
             # Add existing files to bundle
             if existing_files_map:
                 if not silent:
-                    print(f"Adding {len(existing_files_map)} existing file(s) to bundle...")
+                    file_names = [file_path.name for file_path in existing_files_map.keys()]
+                    total_count = len(file_names)
+
+                    if total_count <= 10:
+                        files_list = ", ".join(file_names)
+                        print(f"Adding {total_count} existing file(s) to bundle: {files_list}")
+                    else:
+                        first_10 = ", ".join(file_names[:10])
+                        remaining = total_count - 10
+                        print(f"Adding {total_count} existing file(s) to bundle: {first_10} +{remaining} other files")
 
                 files_to_add = []
                 for file_path, file_data in existing_files_map.items():
@@ -381,7 +390,8 @@ class AppBundlesService(ApiService):
         finalize_response = self.finalize_app_bundle(app_bundle_id)
 
         if not silent:
-            print(f"Bundle finalized successfully")
+            print(f"Bundle finalized successfully. Bundle is processing and will be available once all build and files are processed and available.")
+            print(f"Check bundle status: abxr-cli app_bundles details {app_bundle_id}")
 
         return finalize_response
 
