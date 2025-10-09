@@ -24,6 +24,8 @@ class Commands(Enum):
     GROUP_REMOVE = "remove_from_group"
 
 class FilesService(ApiService):
+    MAX_PARTS_PER_REQUEST = 4
+
     def __init__(self, base_url, token):
         super().__init__(base_url, token)
 

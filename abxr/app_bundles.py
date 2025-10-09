@@ -7,7 +7,6 @@
 import os
 from tqdm import tqdm
 import time
-import hashlib
 from pathlib import Path
 
 from enum import Enum
@@ -125,128 +124,10 @@ class AppBundlesService(ApiService):
         
         return response.json()
     
-    def calculate_file_hash(self, file_path):
-        """Calculate SHA-256 hash of a file"""
-        sha256_hash = hashlib.sha256()
-        with open(file_path, "rb") as f:
-            # Read and update hash in chunks of 4K
-            for byte_block in iter(lambda: f.read(4096), b""):
-                sha256_hash.update(byte_block)
-        return sha256_hash.hexdigest()
-    
-    def upload_file(self, file_path, silent=False):
-        """Upload a file and return its ID"""
-        # This is a simplified version, you'll need to implement the actual file upload logic
-        # similar to how it's done in the files.py module
-        url = f'{self.base_url}/files'
-        
-        with open(file_path, 'rb') as file:
-            files = {'file': (os.path.basename(file_path), file)}
-            with tqdm(total=os.path.getsize(file_path), unit='B', unit_scale=True, 
-                     desc=f'Uploading {os.path.basename(file_path)}', disable=silent) as pbar:
-                
-                # Custom adapter to update progress bar
-                def upload_callback(monitor):
-                    pbar.update(monitor.bytes_read - pbar.n)
-                
-                # Use requests-toolbelt for upload progress if available
-                try:
-                    from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
-                    encoder = MultipartEncoder(fields=files)
-                    monitor = MultipartEncoderMonitor(encoder, upload_callback)
-                    headers = self.headers.copy()
-                    headers['Content-Type'] = monitor.content_type
-                    response = self.client.post(url, data=monitor, headers=headers)
-                except ImportError:
-                    # Fall back to regular upload without progress
-                    response = self.client.post(url, files=files, headers=self.headers)
-        
-        response.raise_for_status()
-        return response.json()
-    
-    def add_directory_to_app_bundle(self, app_bundle_id, directory_path, target_path="", silent=False):
-        """Add all files from a directory to an app bundle
-        
-        Args:
-            app_bundle_id: ID of the app bundle
-            directory_path: Local path to the directory containing files
-            target_path: Base path in the bundle where files should be placed
-            silent: Whether to suppress progress output
-        """
-        # Step 1: Get existing files in the bundle to compare hashes
-        existing_files = self.get_all_files_for_app_bundle(app_bundle_id)
-        existing_file_map = {}
-        
-        # Create a map of path -> {id, hash} for quick lookup
-        for file in existing_files:
-            if 'path' in file and 'hash' in file:
-                existing_file_map[file['path']] = {
-                    'id': file['id'],
-                    'hash': file['hash']
-                }
-        
-        # Step 2: Scan the directory and process files
-        directory_path = Path(directory_path)
-        files_to_add = []
-        files_processed = 0
-        files_skipped = 0
-        files_added = 0
-        
-        # Get all files recursively
-        all_files = [f for f in directory_path.glob('**/*') if f.is_file()]
-        
-        for file_path in tqdm(all_files, desc="Processing files", disable=silent):
-            files_processed += 1
-            
-            # Calculate relative path for the bundle
-            rel_path = file_path.relative_to(directory_path)
-            if target_path:
-                bundle_path = os.path.join(target_path, str(rel_path)).replace('\\', '/')
-            else:
-                bundle_path = str(rel_path).replace('\\', '/')
-                
-            # Calculate file hash
-            file_hash = self.calculate_file_hash(file_path)
-            
-            # Check if file exists with same hash
-            if bundle_path in existing_file_map and existing_file_map[bundle_path]['hash'] == file_hash:
-                if not silent:
-                    print(f"Skipping {bundle_path} (unchanged)")
-                files_skipped += 1
-                continue
-            
-            # File is new or changed, upload it
-            if not silent:
-                print(f"Uploading {bundle_path}")
-                
-            # Upload the file
-            uploaded_file = self.upload_file(file_path, silent)
-            file_id = uploaded_file['id']
-            
-            # Add to list of files to include in bundle
-            files_to_add.append({
-                'fileId': file_id,
-                'path': bundle_path
-            })
-            files_added += 1
-        
-        # Step 3: Add the files to the bundle
-        result = None
-        if files_to_add:
-            result = self.add_files_to_app_bundle(app_bundle_id, files_to_add)
-        
-        # Return summary
-        return {
-            'filesProcessed': files_processed,
-            'filesAdded': files_added,
-            'filesSkipped': files_skipped,
-            'result': result
-        }
-    
     def upload_app_bundle(self, app_id, folder_path, bundle_name, version_number, release_notes, silent):
-        """Upload APK/ZIP from folder and finalize bundle in one operation"""
+        """Upload APK/ZIP and all bundle files from folder, then finalize bundle"""
         from abxr.apps import AppsService
-        from pathlib import Path
+        from abxr.files import FilesService
 
         # Find single APK or ZIP file in folder root
         folder = Path(folder_path)
@@ -290,9 +171,43 @@ class AppBundlesService(ApiService):
 
         if not silent:
             print(f"Bundle created with ID: {app_bundle_id}")
-            print(f"Finalizing bundle...")
+
+        # Find and upload all other files in the folder (excluding system files)
+        all_files = [f for f in folder.rglob('*')
+                     if f.is_file()
+                     and f != build_file
+                     and f.name not in ['.DS_Store', 'Thumbs.db']]
+
+        if all_files:
+            if not silent:
+                print(f"Found {len(all_files)} bundle file(s) to upload")
+
+            files_service = FilesService(self.base_url, self.headers['Authorization'].replace('Bearer ', ''))
+
+            for file_path in all_files:
+                # Calculate relative path from folder
+                rel_path = file_path.relative_to(folder)
+                # Construct device path as /sdcard/{directory} (without filename)
+                rel_dir = rel_path.parent
+                if str(rel_dir) == '.':
+                    device_path = "/sdcard"
+                else:
+                    device_path = f"/sdcard/{str(rel_dir).replace(os.sep, '/')}"
+
+                if not silent:
+                    print(f"Uploading {rel_path} -> {device_path}/{file_path.name}")
+
+                files_service.upload_file(
+                    str(file_path),
+                    device_path,
+                    silent,
+                    app_bundle_id=app_bundle_id
+                )
 
         # Finalize the bundle
+        if not silent:
+            print(f"Finalizing bundle...")
+
         finalize_response = self.finalize_app_bundle(app_bundle_id)
 
         if not silent:
