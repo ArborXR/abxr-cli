@@ -5,6 +5,7 @@
 #
 
 import os
+import hashlib
 from tqdm import tqdm
 import time
 from pathlib import Path
@@ -28,6 +29,22 @@ class AppBundlesService(ApiService):
 
     def __init__(self, base_url, token):
         super().__init__(base_url, token)
+
+    def calculate_sha256(self, file_path):
+        """Calculate SHA-256 hash of a file (for builds)"""
+        sha256_hash = hashlib.sha256()
+        with open(file_path, "rb") as f:
+            for byte_block in iter(lambda: f.read(4096), b""):
+                sha256_hash.update(byte_block)
+        return sha256_hash.hexdigest()
+
+    def calculate_sha512(self, file_path):
+        """Calculate SHA-512 hash of a file (for bundle files)"""
+        sha512_hash = hashlib.sha512()
+        with open(file_path, "rb") as f:
+            for byte_block in iter(lambda: f.read(4096), b""):
+                sha512_hash.update(byte_block)
+        return sha512_hash.hexdigest()
 
     def get_all_app_bundles_for_app(self, app_id, status=None):
         """Get all app bundles for a specific app"""
@@ -118,14 +135,42 @@ class AppBundlesService(ApiService):
     def finalize_app_bundle(self, app_bundle_id):
         """Finalize an app bundle to start processing"""
         url = f'{self.base_url}/app-bundles/{app_bundle_id}/finalize'
-        
+
         response = self.client.post(url, json={}, headers=self.headers)
         response.raise_for_status()
-        
+
         return response.json()
-    
+
+    def create_app_bundle_from_existing(self, app_id, build_id, bundle_name, files=None):
+        """Create an app bundle from existing build and files
+
+        Args:
+            app_id: ID of the app
+            build_id: ID of existing app build/version
+            bundle_name: Name for the bundle
+            files: Optional list of dicts with 'fileId' and optional 'path'
+
+        Returns:
+            Bundle creation response with bundle ID
+        """
+        url = f'{self.base_url}/app-bundles'
+
+        data = {
+            'appId': app_id,
+            'appBuildId': build_id,
+            'appBundleName': bundle_name
+        }
+
+        if files:
+            data['files'] = files
+
+        response = self.client.post(url, json=data, headers=self.headers)
+        response.raise_for_status()
+
+        return response.json()
+
     def upload_app_bundle(self, app_id, folder_path, bundle_name, version_number, release_notes, silent):
-        """Upload APK/ZIP and all bundle files from folder, then finalize bundle"""
+        """Upload APK/ZIP and all bundle files from folder with hash-based deduplication, then finalize bundle"""
         from abxr.apps import AppsService
         from abxr.files import FilesService
 
@@ -148,61 +193,186 @@ class AppBundlesService(ApiService):
         if not silent:
             print(f"Found build file: {build_file.name}")
 
-        # Upload the build with bundle name
-        apps_service = AppsService(self.base_url, self.headers['Authorization'].replace('Bearer ', ''))
-
+        # Calculate build hash
         if not silent:
-            print(f"Uploading build and creating bundle '{bundle_name}'...")
+            print(f"Calculating build hash...")
+        build_hash = self.calculate_sha256(str(build_file))
 
-        upload_response = apps_service.upload_file(
-            app_id,
-            str(build_file),
-            version_number,
-            release_notes,
-            silent,
-            wait=False,
-            app_bundle_name=bundle_name
-        )
-
-        # Extract app bundle ID from response
-        app_bundle_id = upload_response.get('appBundleId')
-        if not app_bundle_id:
-            raise ValueError("No appBundleId returned from upload. Bundle may not have been created.")
-
-        if not silent:
-            print(f"Bundle created with ID: {app_bundle_id}")
-
-        # Find and upload all other files in the folder (excluding system files)
+        # Find all bundle files (excluding system files)
         all_files = [f for f in folder.rglob('*')
                      if f.is_file()
                      and f != build_file
                      and f.name not in ['.DS_Store', 'Thumbs.db']]
 
-        if all_files:
+        # Calculate file hashes
+        file_hashes = {}
+        if all_files and not silent:
+            print(f"Calculating hashes for {len(all_files)} bundle file(s)...")
+        for file_path in all_files:
+            file_hashes[file_path] = self.calculate_sha512(str(file_path))
+
+        # Query for existing resources
+        apps_service = AppsService(self.base_url, self.headers['Authorization'].replace('Bearer ', ''))
+
+        if not silent:
+            print(f"Checking for existing build...")
+        existing_builds = apps_service.get_versions_by_sha256(app_id, [build_hash])
+        existing_build = existing_builds[0] if existing_builds else None
+
+        # Query for existing files (batch up to 10 at a time)
+        existing_files_map = {}
+        if file_hashes:
             if not silent:
-                print(f"Found {len(all_files)} bundle file(s) to upload")
+                print(f"Checking for existing files...")
+            hash_list = list(file_hashes.values())
+            for i in range(0, len(hash_list), 10):
+                batch_hashes = hash_list[i:i + 10]
+                existing_files_batch = apps_service.get_files_by_sha512(app_id, batch_hashes)
+                for file_data in existing_files_batch:
+                    file_hash = file_data.get('sha512')
+                    file_name = file_data.get('name')
+                    # Match by hash AND filename for safety
+                    for file_path, path_hash in file_hashes.items():
+                        if path_hash == file_hash and file_path.name == file_name:
+                            existing_files_map[file_path] = file_data
 
-            files_service = FilesService(self.base_url, self.headers['Authorization'].replace('Bearer ', ''))
+        # Branch based on whether build exists
+        if existing_build:
+            if not silent:
+                print(f"Build found (reusing existing version {existing_build.get('id')})")
 
-            for file_path in all_files:
-                # Calculate relative path from folder
+            # Create bundle from existing build
+            build_id = existing_build['id']
+
+            # Prepare files array for bundle creation
+            bundle_files = []
+            for file_path, file_data in existing_files_map.items():
                 rel_path = file_path.relative_to(folder)
-                # Construct device path as /sdcard/{directory} (without filename)
                 rel_dir = rel_path.parent
                 if str(rel_dir) == '.':
                     device_path = "/sdcard"
                 else:
                     device_path = f"/sdcard/{str(rel_dir).replace(os.sep, '/')}"
 
-                if not silent:
-                    print(f"Uploading {rel_path} -> {device_path}/{file_path.name}")
+                bundle_files.append({
+                    'fileId': file_data['id'],
+                    'path': device_path
+                })
 
-                files_service.upload_file(
-                    str(file_path),
-                    device_path,
-                    silent,
-                    app_bundle_id=app_bundle_id
-                )
+            if not silent:
+                print(f"Creating bundle with existing build...")
+            bundle_response = self.create_app_bundle_from_existing(
+                app_id,
+                build_id,
+                bundle_name,
+                bundle_files if bundle_files else None
+            )
+
+            app_bundle_id = bundle_response.get('id')
+            if not app_bundle_id:
+                raise ValueError("No bundle ID returned from bundle creation.")
+
+            if not silent:
+                print(f"Bundle created with ID: {app_bundle_id}")
+
+            # Upload missing files
+            files_to_upload = [f for f in all_files if f not in existing_files_map]
+            if files_to_upload:
+                if not silent:
+                    print(f"Uploading {len(files_to_upload)} new file(s)...")
+                files_service = FilesService(self.base_url, self.headers['Authorization'].replace('Bearer ', ''))
+
+                for file_path in files_to_upload:
+                    rel_path = file_path.relative_to(folder)
+                    rel_dir = rel_path.parent
+                    if str(rel_dir) == '.':
+                        device_path = "/sdcard"
+                    else:
+                        device_path = f"/sdcard/{str(rel_dir).replace(os.sep, '/')}"
+
+                    if not silent:
+                        print(f"Uploading {rel_path} -> {device_path}/{file_path.name}")
+
+                    files_service.upload_file(
+                        str(file_path),
+                        device_path,
+                        silent,
+                        app_bundle_id=app_bundle_id
+                    )
+
+            if existing_files_map and not silent:
+                print(f"Reused {len(existing_files_map)} existing file(s)")
+
+        else:
+            # Build doesn't exist - upload it
+            if not silent:
+                print(f"Build not found, uploading new build and creating bundle '{bundle_name}'...")
+
+            upload_response = apps_service.upload_file(
+                app_id,
+                str(build_file),
+                version_number,
+                release_notes,
+                silent,
+                wait=False,
+                app_bundle_name=bundle_name
+            )
+
+            app_bundle_id = upload_response.get('appBundleId')
+            if not app_bundle_id:
+                raise ValueError("No appBundleId returned from upload. Bundle may not have been created.")
+
+            if not silent:
+                print(f"Bundle created with ID: {app_bundle_id}")
+
+            # Add existing files to bundle
+            if existing_files_map:
+                if not silent:
+                    print(f"Adding {len(existing_files_map)} existing file(s) to bundle...")
+
+                files_to_add = []
+                for file_path, file_data in existing_files_map.items():
+                    rel_path = file_path.relative_to(folder)
+                    rel_dir = rel_path.parent
+                    if str(rel_dir) == '.':
+                        device_path = "/sdcard"
+                    else:
+                        device_path = f"/sdcard/{str(rel_dir).replace(os.sep, '/')}"
+
+                    files_to_add.append({
+                        'fileId': file_data['id'],
+                        'path': device_path
+                    })
+
+                self.add_files_to_app_bundle(app_bundle_id, files_to_add)
+
+            # Upload missing files
+            files_to_upload = [f for f in all_files if f not in existing_files_map]
+            if files_to_upload:
+                if not silent:
+                    print(f"Uploading {len(files_to_upload)} new file(s)...")
+                files_service = FilesService(self.base_url, self.headers['Authorization'].replace('Bearer ', ''))
+
+                for file_path in files_to_upload:
+                    rel_path = file_path.relative_to(folder)
+                    rel_dir = rel_path.parent
+                    if str(rel_dir) == '.':
+                        device_path = "/sdcard"
+                    else:
+                        device_path = f"/sdcard/{str(rel_dir).replace(os.sep, '/')}"
+
+                    if not silent:
+                        print(f"Uploading {rel_path} -> {device_path}/{file_path.name}")
+
+                    files_service.upload_file(
+                        str(file_path),
+                        device_path,
+                        silent,
+                        app_bundle_id=app_bundle_id
+                    )
+
+            if existing_files_map and not silent:
+                print(f"Reused {len(existing_files_map)} existing file(s)")
 
         # Finalize the bundle
         if not silent:

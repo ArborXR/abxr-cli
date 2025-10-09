@@ -183,7 +183,40 @@ class AppsService(ApiService):
                 data += json['data']
 
         return data
-    
+
+    def get_versions_by_sha256(self, app_id, sha256_hashes):
+        """Query app versions by SHA-256 hashes, return only AVAILABLE versions"""
+        if not sha256_hashes:
+            return []
+
+        # Build query string with sha256[] array parameters
+        query_params = '&'.join([f'sha256[]={hash}' for hash in sha256_hashes])
+        url = f'{self.base_url}/apps/{app_id}/versions?{query_params}'
+
+        response = self.client.get(url, headers=self.headers)
+        response.raise_for_status()
+
+        json_data = response.json()
+        data = json_data.get('data', [])
+
+        # Filter for AVAILABLE status only
+        return [v for v in data if v.get('status') == 'AVAILABLE']
+
+    def get_files_by_sha512(self, app_id, sha512_hashes):
+        """Query app files by SHA-512 hashes"""
+        if not sha512_hashes:
+            return []
+
+        # Build query string with sha512[] array parameters
+        query_params = '&'.join([f'sha512[]={hash}' for hash in sha512_hashes])
+        url = f'{self.base_url}/apps/{app_id}/files?{query_params}'
+
+        response = self.client.get(url, headers=self.headers)
+        response.raise_for_status()
+
+        json_data = response.json()
+        return json_data.get('data', [])
+
     def get_all_release_channels_for_app(self, app_id):
         url = f'{self.base_url}/apps/{app_id}/release-channels'
 
