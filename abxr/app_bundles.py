@@ -124,13 +124,14 @@ class AppBundlesService(ApiService):
 
         return response.json()
 
-    def _validate_bundle_files_match(self, bundle_files, local_file_hashes, folder):
+    def _validate_bundle_files_match(self, bundle_files, local_file_hashes, folder, base_path=None):
         """Validate that existing bundle files match local folder structure
 
         Args:
             bundle_files: List of file dicts from API with 'name', 'location', 'sha512'
             local_file_hashes: Dict of {Path: sha512_hash} for local files
             folder: Path object for the local folder root
+            base_path: Optional base path on device relative to /sdcard
 
         Raises:
             ValueError: If any bundle file doesn't match local structure
@@ -160,7 +161,7 @@ class AppBundlesService(ApiService):
                 continue
 
             # Check path
-            computed_path = self._compute_device_path(local_file, folder)
+            computed_path = self._compute_device_path(local_file, folder, base_path)
 
             if computed_path != bundle_location:
                 mismatches.append(f"  - {file_name}: path changed (bundle: {bundle_location}, local: {computed_path})")
@@ -173,43 +174,55 @@ class AppBundlesService(ApiService):
             error_msg += "\nTo create a new bundle with these changes, use the upload command."
             raise ValueError(error_msg)
 
-    def _compute_device_path(self, file_path, folder):
+    def _compute_device_path(self, file_path, folder, base_path=None):
         """Compute /sdcard device path for a file relative to folder root
 
         Args:
             file_path: Path object for the file
             folder: Path object for the folder root
+            base_path: Optional base path relative to /sdcard (e.g., "myapp/config")
 
         Returns:
-            Device path string (e.g., "/sdcard" or "/sdcard/data/cache")
+            Device path string (e.g., "/sdcard" or "/sdcard/data/cache" or "/sdcard/myapp/config/data")
         """
         rel_path = file_path.relative_to(folder)
         rel_dir = rel_path.parent
-        if str(rel_dir) == '.':
-            return "/sdcard"
-        else:
-            return f"/sdcard/{str(rel_dir).replace(os.sep, '/')}"
 
-    def _prepare_existing_files_for_bundle(self, existing_files_map, folder):
+        # Build path components
+        if base_path:
+            # Start with /sdcard/{base_path}
+            if str(rel_dir) == '.':
+                return f"/sdcard/{base_path}"
+            else:
+                return f"/sdcard/{base_path}/{str(rel_dir).replace(os.sep, '/')}"
+        else:
+            # Original behavior: /sdcard or /sdcard/{rel_dir}
+            if str(rel_dir) == '.':
+                return "/sdcard"
+            else:
+                return f"/sdcard/{str(rel_dir).replace(os.sep, '/')}"
+
+    def _prepare_existing_files_for_bundle(self, existing_files_map, folder, base_path=None):
         """Prepare existing files array for bundle creation/addition
 
         Args:
             existing_files_map: Dict of {Path: file_data} for existing files
             folder: Path object for the folder root
+            base_path: Optional base path on device relative to /sdcard
 
         Returns:
             List of dicts with 'fileId' and 'path' for API
         """
         files_to_add = []
         for file_path, file_data in existing_files_map.items():
-            device_path = self._compute_device_path(file_path, folder)
+            device_path = self._compute_device_path(file_path, folder, base_path)
             files_to_add.append({
                 'fileId': file_data['id'],
                 'path': device_path
             })
         return files_to_add
 
-    def _upload_bundle_files(self, files_to_upload, folder, app_bundle_id, silent):
+    def _upload_bundle_files(self, files_to_upload, folder, app_bundle_id, silent, base_path=None):
         """Upload bundle files to an app bundle
 
         Args:
@@ -217,6 +230,7 @@ class AppBundlesService(ApiService):
             folder: Path object for the folder root
             app_bundle_id: ID of the bundle to upload files to
             silent: Suppress output
+            base_path: Optional base path on device relative to /sdcard
         """
         if not files_to_upload:
             return
@@ -228,7 +242,7 @@ class AppBundlesService(ApiService):
 
         for file_path in files_to_upload:
             rel_path = file_path.relative_to(folder)
-            device_path = self._compute_device_path(file_path, folder)
+            device_path = self._compute_device_path(file_path, folder, base_path)
 
             if not silent:
                 print(f"Uploading {rel_path} -> {device_path}/{file_path.name}")
@@ -316,7 +330,7 @@ class AppBundlesService(ApiService):
 
         return response.json()
 
-    def upload_app_bundle(self, app_id, folder_path, bundle_name, version_number, release_notes, silent, apk_path):
+    def upload_app_bundle(self, app_id, folder_path, bundle_name, version_number, release_notes, silent, apk_path, device_path=None):
         """Upload APK/ZIP and all bundle files from folder with hash-based deduplication, then finalize bundle
 
         Args:
@@ -327,6 +341,7 @@ class AppBundlesService(ApiService):
             release_notes: Optional release notes
             silent: Suppress output
             apk_path: Path to APK/ZIP file
+            device_path: Optional base path on device relative to /sdcard
         """
         # Scan folder for build and files
         folder, build_file, build_hash, file_hashes = self._scan_folder(folder_path, apk_path, silent)
@@ -366,7 +381,7 @@ class AppBundlesService(ApiService):
             build_id = existing_build['id']
 
             # Prepare files array for bundle creation
-            bundle_files = self._prepare_existing_files_for_bundle(existing_files_map, folder)
+            bundle_files = self._prepare_existing_files_for_bundle(existing_files_map, folder, device_path)
 
             if not silent:
                 print(f"Creating bundle with existing build...")
@@ -387,7 +402,7 @@ class AppBundlesService(ApiService):
             try:
                 # Upload missing files
                 files_to_upload = [f for f in all_files if f not in existing_files_map]
-                self._upload_bundle_files(files_to_upload, folder, app_bundle_id, silent)
+                self._upload_bundle_files(files_to_upload, folder, app_bundle_id, silent, device_path)
 
                 if existing_files_map and not silent:
                     print(f"Reused {len(existing_files_map)} existing file(s)")
@@ -435,12 +450,12 @@ class AppBundlesService(ApiService):
                             remaining = total_count - 10
                             print(f"Adding {total_count} existing file(s) to bundle: {first_10} +{remaining} other files")
 
-                    files_to_add = self._prepare_existing_files_for_bundle(existing_files_map, folder)
+                    files_to_add = self._prepare_existing_files_for_bundle(existing_files_map, folder, device_path)
                     self.add_files_to_app_bundle(app_bundle_id, files_to_add)
 
                 # Upload missing files
                 files_to_upload = [f for f in all_files if f not in existing_files_map]
-                self._upload_bundle_files(files_to_upload, folder, app_bundle_id, silent)
+                self._upload_bundle_files(files_to_upload, folder, app_bundle_id, silent, device_path)
 
                 if existing_files_map and not silent:
                     print(f"Reused {len(existing_files_map)} existing file(s)")
@@ -463,7 +478,7 @@ class AppBundlesService(ApiService):
 
         return finalize_response
 
-    def resume_app_bundle(self, bundle_id, apk_path, folder_path, silent):
+    def resume_app_bundle(self, bundle_id, apk_path, folder_path, silent, device_path=None):
         """Resume a failed or interrupted bundle upload
 
         Args:
@@ -471,6 +486,7 @@ class AppBundlesService(ApiService):
             apk_path: Path to APK file
             folder_path: Path to folder containing bundle files
             silent: Suppress output
+            device_path: Optional base path on device relative to /sdcard (must match original upload)
 
         Raises:
             ValueError: If bundle cannot be resumed (wrong status, file mismatch, etc.)
@@ -515,7 +531,7 @@ class AppBundlesService(ApiService):
         if bundle_files:
             if not silent:
                 print(f"Validating {len(bundle_files)} existing file(s)...")
-            self._validate_bundle_files_match(bundle_files, file_hashes, folder)
+            self._validate_bundle_files_match(bundle_files, file_hashes, folder, device_path)
             if not silent:
                 print(f"All existing files verified")
 
@@ -528,7 +544,7 @@ class AppBundlesService(ApiService):
             if not silent:
                 print(f"All files already uploaded to bundle")
         else:
-            self._upload_bundle_files(files_to_upload, folder, bundle_id, silent)
+            self._upload_bundle_files(files_to_upload, folder, bundle_id, silent, device_path)
 
         # Finalize the bundle
         if not silent:
@@ -589,6 +605,7 @@ class CommandHandler:
                 self.args.bundle_id,
                 self.args.apk_path,
                 self.args.folder_path,
-                self.args.silent
+                self.args.silent,
+                device_path=getattr(self.args, 'device_path', None)
             )
             print_formatted(self.args.format, result)

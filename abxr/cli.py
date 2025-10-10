@@ -83,6 +83,7 @@ def main():
     create_version_parser.add_argument("--wait_time", help="Maximum wait time in seconds for the upload to complete processing", type=int, default=60)
     create_version_parser.add_argument("--bundle-directory", help="Path to folder containing bundle files (creates app bundle)", type=str)
     create_version_parser.add_argument("--bundle-name", help="Name for app bundle (required when using --bundle-directory)", type=str)
+    create_version_parser.add_argument("--device-path", help="Optional device path relative to /sdcard for bundle files", type=str)
 
     # Sharing Apps
     share_parser = apps_subparsers.add_parser(AppCommands.SHARE.value, help="Share an app")
@@ -387,6 +388,7 @@ def main():
     app_bundles_resume_parser.add_argument("bundle_id", help="ID of the bundle to resume", type=str)
     app_bundles_resume_parser.add_argument("apk_path", help="Path to APK file", type=str)
     app_bundles_resume_parser.add_argument("folder_path", help="Path to folder with bundle files", type=str)
+    app_bundles_resume_parser.add_argument("--device-path", help="Optional device path relative to /sdcard for bundle files (must match original upload)", type=str)
 
     args = parser.parse_args()
 

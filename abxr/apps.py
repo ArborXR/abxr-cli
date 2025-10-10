@@ -319,7 +319,8 @@ class CommandHandler:
                     self.args.version_number,
                     self.args.notes,
                     self.args.silent,
-                    apk_path=self.args.filename  # APK path provided separately
+                    apk_path=self.args.filename,  # APK path provided separately
+                    device_path=getattr(self.args, 'device_path', None)  # Optional device path
                 )
                 print_formatted(self.args.format, result)
             else:
