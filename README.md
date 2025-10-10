@@ -45,7 +45,7 @@ pip install abxrcli
 
 ## Command Groups
 
-The CLI tool is divided into two main groups: apps and files. Each group has its own set of subcommands.
+The CLI tool is divided into multiple groups including apps, app_bundles, files, and devices. Each group has its own set of subcommands.
 
 ### Apps Commands
 
@@ -134,6 +134,72 @@ These commands manage app-related operations.
 * Description: Revoke sharing of an app from a specific organization and release channel.
 
 
+### App Bundles Commands
+
+App bundles combine an app version with associated files that should be deployed together. These commands manage the creation, upload, and management of app bundles.
+
+**Folder Structure and Device Paths:**
+Files in your local bundle folder are automatically mapped to device paths under `/sdcard/`. The folder structure is preserved:
+- Files in the root folder → `/sdcard/`
+- Files in subfolders → `/sdcard/{subfolder_path}/`
+
+Example:
+```
+bundle-folder/
+  app.apk                    → uploaded as app version
+  config.json                → /sdcard/config.json
+  data/
+    user.json                → /sdcard/data/user.json
+    cache/
+      temp.dat               → /sdcard/data/cache/temp.dat
+```
+
+**Hash-Based Deduplication:**
+The CLI automatically detects and reuses existing builds and files based on their content hash (SHA-256 for builds, SHA-512 for files). This means:
+- Uploading the same APK multiple times only stores it once
+- Files that haven't changed are reused across bundles
+- Only new or modified files are uploaded, saving time and bandwidth
+
+#### Subcommands
+
+##### upload
+* Usage:
+`abxr-cli app_bundles upload <app_id> <folder_path> --bundle_name BUNDLE_NAME [--version_number VERSION] [-n NOTES]`
+* Positional Arguments:
+    * <app_id>: The unique identifier of the app.
+    * <folder_path>: Path to folder containing APK/ZIP file and bundle files.
+* Required Options:
+    * --bundle_name: Name for the app bundle.
+* Optional Arguments:
+    * --version_number: Version number (APK can override this value, only used for new builds).
+    * -n, --notes: Release notes for the bundle.
+* Description: Upload an APK/ZIP and all bundle files from a folder, then finalize the bundle. Automatically reuses existing builds and files based on hash matching for faster uploads.
+
+##### list
+* Usage:
+`abxr-cli app_bundles list <app_id> [--status STATUS]`
+* Positional Argument:
+    * <app_id>: The unique identifier of the app.
+* Optional Arguments:
+    * --status: Filter by status (pending, processing, failed, available).
+* Description: List all app bundles for a specific app.
+
+##### details
+* Usage:
+`abxr-cli app_bundles details <app_bundle_id>`
+* Positional Argument:
+    * <app_bundle_id>: The unique identifier of the app bundle.
+* Description: Get detailed information about a specific app bundle.
+
+##### resume
+* Usage:
+`abxr-cli app_bundles resume <bundle_id> <folder_path>`
+* Positional Arguments:
+    * <bundle_id>: The unique identifier of the bundle to resume.
+    * <folder_path>: Path to folder containing the original bundle files.
+* Description: Resume a failed or interrupted bundle upload. Validates that the folder structure matches the original bundle, then uploads any missing files and finalizes the bundle.
+
+
 ### Files Commands
 
 These commands are used for file-related operations.
@@ -219,6 +285,36 @@ These examples assume you have set the `ABXR_API_TOKEN` in your environment.
 ### Listing all files
 
 `abxr-cli files list`
+
+### Uploading an app bundle with files
+
+Upload a folder containing an APK and associated files:
+
+`abxr-cli app_bundles upload 123e4567-e89b-12d3-a456-426614174000 /path/to/bundle-folder --bundle_name "Production Release v1.0"`
+
+With version number and release notes:
+
+`abxr-cli app_bundles upload 123e4567-e89b-12d3-a456-426614174000 /path/to/bundle-folder --bundle_name "Production Release v1.0" --version_number "1.0.0" --notes "Initial production release"`
+
+### Listing app bundles
+
+List all bundles for an app:
+
+`abxr-cli app_bundles list 123e4567-e89b-12d3-a456-426614174000`
+
+List only pending bundles:
+
+`abxr-cli app_bundles list 123e4567-e89b-12d3-a456-426614174000 --status pending`
+
+### Getting app bundle details
+
+`abxr-cli app_bundles details 789e1234-e89b-12d3-a456-426614174000`
+
+### Resuming a failed bundle upload
+
+If an upload fails or is interrupted, you can resume it:
+
+`abxr-cli app_bundles resume 789e1234-e89b-12d3-a456-426614174000 /path/to/bundle-folder`
 
 
 ## Error Handling
