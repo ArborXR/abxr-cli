@@ -81,9 +81,6 @@ def main():
     create_version_parser.add_argument("-n", "--notes", help="Release Notes", type=str)
     create_version_parser.add_argument("-w", "--wait", help="Wait for the upload to complete", action="store_true")
     create_version_parser.add_argument("--wait_time", help="Maximum wait time in seconds for the upload to complete processing", type=int, default=60)
-    create_version_parser.add_argument("--bundle-directory", help="Path to folder containing bundle files (creates app bundle)", type=str)
-    create_version_parser.add_argument("--bundle-name", help="Name for app bundle (required when using --bundle-directory)", type=str)
-    create_version_parser.add_argument("--device-path", help="Optional device path relative to /sdcard for bundle files", type=str)
 
     # Sharing Apps
     share_parser = apps_subparsers.add_parser(AppCommands.SHARE.value, help="Share an app")
@@ -373,6 +370,16 @@ def main():
     # App Bundles
     app_bundles_parser = subparsers.add_parser("app_bundles", help="App Bundles command")
     app_bundles_subparsers = app_bundles_parser.add_subparsers(dest="app_bundles_command", help="App Bundles command help")
+
+    # Upload an app bundle
+    app_bundles_upload_parser = app_bundles_subparsers.add_parser(AppBundlesCommands.UPLOAD.value, help="Upload an app bundle with APK and files")
+    app_bundles_upload_parser.add_argument("app_id", help="ID of the app", type=str)
+    app_bundles_upload_parser.add_argument("apk_path", help="Path to APK/ZIP file", type=str)
+    app_bundles_upload_parser.add_argument("bundle_folder", help="Path to folder containing bundle files", type=str)
+    app_bundles_upload_parser.add_argument("--bundle-name", help="Name for the app bundle", type=str, required=True)
+    app_bundles_upload_parser.add_argument("--version-number", help="Version number (APK can override this value)", type=str)
+    app_bundles_upload_parser.add_argument("-n", "--notes", help="Release notes for the bundle", type=str)
+    app_bundles_upload_parser.add_argument("--device-path", help="Optional device path relative to /sdcard for bundle files", type=str)
 
     # List app bundles for an app
     app_bundles_list_parser = app_bundles_subparsers.add_parser(AppBundlesCommands.LIST.value, help="List app bundles for an app")

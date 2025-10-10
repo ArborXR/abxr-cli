@@ -568,11 +568,13 @@ class CommandHandler:
         if self.args.app_bundles_command == Commands.UPLOAD.value:
             result = self.service.upload_app_bundle(
                 self.args.app_id,
-                self.args.folder_path,
+                self.args.bundle_folder,
                 self.args.bundle_name,
-                self.args.version_number,
+                getattr(self.args, 'version_number', None),
                 self.args.notes,
-                self.args.silent
+                self.args.silent,
+                apk_path=self.args.apk_path,
+                device_path=getattr(self.args, 'device_path', None)
             )
             print_formatted(self.args.format, result)
 

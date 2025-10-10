@@ -303,30 +303,8 @@ class CommandHandler:
             self.service.set_version_for_release_channel(self.args.app_id, self.args.release_channel_id, self.args.version_id)
 
         elif self.args.apps_command == Commands.UPLOAD.value:
-            # Check if bundle upload is requested
-            if hasattr(self.args, 'bundle_directory') and self.args.bundle_directory:
-                # Validate bundle-name is provided
-                if not hasattr(self.args, 'bundle_name') or not self.args.bundle_name:
-                    raise ValueError("--bundle-name is required when using --bundle-directory")
-
-                # Call bundle upload with apk_path
-                from abxr.app_bundles import AppBundlesService
-                bundle_service = AppBundlesService(self.args.url, self.args.token)
-                result = bundle_service.upload_app_bundle(
-                    self.args.app_id,
-                    self.args.bundle_directory,  # folder with bundle files
-                    self.args.bundle_name,
-                    self.args.version_number,
-                    self.args.notes,
-                    self.args.silent,
-                    apk_path=self.args.filename,  # APK path provided separately
-                    device_path=getattr(self.args, 'device_path', None)  # Optional device path
-                )
-                print_formatted(self.args.format, result)
-            else:
-                # Normal APK-only upload (existing behavior)
-                app_version = self.service.upload_file(self.args.app_id, self.args.filename, self.args.version_number, self.args.notes, self.args.silent, self.args.wait, self.args.wait_time)
-                print_formatted(self.args.format, app_version)
+            app_version = self.service.upload_file(self.args.app_id, self.args.filename, self.args.version_number, self.args.notes, self.args.silent, self.args.wait, self.args.wait_time)
+            print_formatted(self.args.format, app_version)
 
         elif self.args.apps_command == Commands.SHARE.value:
             self.service.share_app(self.args.app_id, self.args.release_channel_id, self.args.organization_slug)

@@ -111,7 +111,7 @@ These commands manage app-related operations.
 * Optional Arguments:
 	* -v, --version: Version number (note that the Uploaded APK itself can override this value).
 	* -n, --notes: Release notes for the new version.
-* Description: Upload a new version of an app.
+* Description: Upload a new version of an app (APK/ZIP only). To upload an app bundle with associated files, use the `app_bundles upload` command.
 
 ##### share
 * Usage:
@@ -139,19 +139,28 @@ These commands manage app-related operations.
 App bundles combine an app version with associated files that should be deployed together. These commands manage the creation, upload, and management of app bundles.
 
 **Folder Structure and Device Paths:**
-Files in your local bundle folder are automatically mapped to device paths under `/sdcard/`. The folder structure is preserved:
+The APK file and bundle folder are provided separately. Files in your bundle folder are automatically mapped to device paths under `/sdcard/`. The folder structure is preserved:
 - Files in the root folder → `/sdcard/`
 - Files in subfolders → `/sdcard/{subfolder_path}/`
 
-Example:
+You can optionally specify a custom base path using `--device-path` to map files under a subdirectory of `/sdcard/`.
+
+Example (default mapping):
 ```
 bundle-folder/
-  app.apk                    → uploaded as app version
   config.json                → /sdcard/config.json
   data/
     user.json                → /sdcard/data/user.json
     cache/
       temp.dat               → /sdcard/data/cache/temp.dat
+```
+
+Example (with `--device-path myapp/config`):
+```
+bundle-folder/
+  config.json                → /sdcard/myapp/config/config.json
+  data/
+    user.json                → /sdcard/myapp/config/data/user.json
 ```
 
 **Hash-Based Deduplication:**
@@ -164,15 +173,17 @@ The CLI automatically detects and reuses existing builds and files based on thei
 
 ##### upload
 * Usage:
-`abxr-cli app_bundles upload <app_id> <folder_path> --bundle_name BUNDLE_NAME [--version_number VERSION] [-n NOTES]`
+`abxr-cli app_bundles upload <app_id> <apk_path> <bundle_folder> --bundle-name BUNDLE_NAME [--version-number VERSION] [-n NOTES] [--device-path PATH]`
 * Positional Arguments:
     * <app_id>: The unique identifier of the app.
-    * <folder_path>: Path to folder containing APK/ZIP file and bundle files.
+    * <apk_path>: Path to APK/ZIP file.
+    * <bundle_folder>: Path to folder containing bundle files.
 * Required Options:
-    * --bundle_name: Name for the app bundle.
+    * --bundle-name: Name for the app bundle.
 * Optional Arguments:
-    * --version_number: Version number (APK can override this value, only used for new builds).
+    * --version-number: Version number (APK can override this value, only used for new builds).
     * -n, --notes: Release notes for the bundle.
+    * --device-path: Optional device path relative to /sdcard for bundle files (e.g., "myapp/config").
 * Description: Upload an APK/ZIP and all bundle files from a folder, then finalize the bundle. Automatically reuses existing builds and files based on hash matching for faster uploads.
 
 ##### list
@@ -193,11 +204,14 @@ The CLI automatically detects and reuses existing builds and files based on thei
 
 ##### resume
 * Usage:
-`abxr-cli app_bundles resume <bundle_id> <folder_path>`
+`abxr-cli app_bundles resume <bundle_id> <apk_path> <folder_path> [--device-path PATH]`
 * Positional Arguments:
     * <bundle_id>: The unique identifier of the bundle to resume.
+    * <apk_path>: Path to APK file (must match original).
     * <folder_path>: Path to folder containing the original bundle files.
-* Description: Resume a failed or interrupted bundle upload. Validates that the folder structure matches the original bundle, then uploads any missing files and finalizes the bundle.
+* Optional Arguments:
+    * --device-path: Device path relative to /sdcard (must match original upload if used).
+* Description: Resume a failed or interrupted bundle upload. Validates that the APK, folder structure, and device path match the original bundle, then uploads any missing files and finalizes the bundle.
 
 
 ### Files Commands
@@ -288,13 +302,17 @@ These examples assume you have set the `ABXR_API_TOKEN` in your environment.
 
 ### Uploading an app bundle with files
 
-Upload a folder containing an APK and associated files:
+Upload an APK and associated files from a folder:
 
-`abxr-cli app_bundles upload 123e4567-e89b-12d3-a456-426614174000 /path/to/bundle-folder --bundle_name "Production Release v1.0"`
+`abxr-cli app_bundles upload 123e4567-e89b-12d3-a456-426614174000 /path/to/app.apk /path/to/bundle-folder --bundle-name "Production Release v1.0"`
 
 With version number and release notes:
 
-`abxr-cli app_bundles upload 123e4567-e89b-12d3-a456-426614174000 /path/to/bundle-folder --bundle_name "Production Release v1.0" --version_number "1.0.0" --notes "Initial production release"`
+`abxr-cli app_bundles upload 123e4567-e89b-12d3-a456-426614174000 /path/to/app.apk /path/to/bundle-folder --bundle-name "Production Release v1.0" --version-number "1.0.0" --notes "Initial production release"`
+
+With a custom device path (files will be placed under /sdcard/myapp/config/):
+
+`abxr-cli app_bundles upload 123e4567-e89b-12d3-a456-426614174000 /path/to/app.apk /path/to/bundle-folder --bundle-name "Production Release v1.0" --device-path myapp/config`
 
 ### Listing app bundles
 
@@ -314,7 +332,11 @@ List only pending bundles:
 
 If an upload fails or is interrupted, you can resume it:
 
-`abxr-cli app_bundles resume 789e1234-e89b-12d3-a456-426614174000 /path/to/bundle-folder`
+`abxr-cli app_bundles resume 789e1234-e89b-12d3-a456-426614174000 /path/to/app.apk /path/to/bundle-folder`
+
+If the original upload used a custom device path, you must provide it when resuming:
+
+`abxr-cli app_bundles resume 789e1234-e89b-12d3-a456-426614174000 /path/to/app.apk /path/to/bundle-folder --device-path myapp/config`
 
 
 ## Error Handling
