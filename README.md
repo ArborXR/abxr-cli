@@ -61,42 +61,42 @@ These commands manage app-related operations.
 
 ##### details
 * Usage:
-`abxr-cli apps details <app_id>`
+`abxr-cli apps details app_id`
 * Positional Argument:
-    * <app_id>: The unique identifier of the app.
+    * `app_id`: The unique identifier of the app.
 * Description: Retrieve detailed information about a specific app.
 
 
 ##### versions
 * Usage:
-`abxr-cli apps versions <app_id>`
+`abxr-cli apps versions app_id`
 * Positional Argument:
-    * <app_id>: The unique identifier of the app.
+    * `app_id`: The unique identifier of the app.
 * Description: List all versions available for a specific app.
 
 
 ##### release_channels
 * Usage:
-`abxr-cli apps release_channels <app_id>`
+`abxr-cli apps release_channels app_id`
 * Positional Argument:
-    * <app_id>: The unique identifier of the app.
+    * `app_id`: The unique identifier of the app.
 * Description: List all release channels associated with a specific app.
 
 
 ##### release_channel_details
 * Usage:
-`abxr-cli apps release_channel_details <app_id> [--release_channel_id RELEASE_CHANNEL_ID]`
+`abxr-cli apps release_channel_details app_id [--release_channel_id RELEASE_CHANNEL_ID]`
 * Positional Argument:
-    * <app_id>: The unique identifier of the app.
+    * `app_id`: The unique identifier of the app.
 * Optional Argument:
     * --release_channel_id: The identifier for a specific release channel.
 * Description: Get details for a release channel of an app.
 
 ##### release_channel_set_version
 * Usage:
-`abxr-cli apps release_channel_set_version <app_id> [--release_channel_id RELEASE_CHANNEL_ID] [--version_id VERSION_ID]`
+`abxr-cli apps release_channel_set_version app_id [--release_channel_id RELEASE_CHANNEL_ID] [--version_id VERSION_ID]`
 * Positional Argument:
-    * <app_id>: The unique identifier of the app.
+    * `app_id`: The unique identifier of the app.
 * Optional Arguments:
     * --release_channel_id: The identifier for the release channel.
     * --version_id: The version identifier to set for the channel.
@@ -104,10 +104,10 @@ These commands manage app-related operations.
 
 ##### upload
 * Usage:
-`abxr-cli apps upload <app_id> <filename> [--version VERSION] [--notes NOTES]`
+`abxr-cli apps upload app_id filename [--version VERSION] [--notes NOTES]`
 * Positional Arguments:
-    * <app_id>: The unique identifier of the app.
-	* <filename>: Local path of the APK/ZIP (apk+obb) file to upload.
+    * `app_id`: The unique identifier of the app.
+	* `filename`: Local path of the APK/ZIP (apk+obb) file to upload.
 * Optional Arguments:
 	* -v, --version: Version number (note that the Uploaded APK itself can override this value).
 	* -n, --notes: Release notes for the new version.
@@ -115,9 +115,9 @@ These commands manage app-related operations.
 
 ##### share
 * Usage:
-`abxr-cli apps share <app_id> --release_channel_id RELEASE_CHANNEL_ID --organization_slug ORGANIZATION_SLUG`
+`abxr-cli apps share app_id --release_channel_id RELEASE_CHANNEL_ID --organization_slug ORGANIZATION_SLUG`
 * Positional Argument:
-	* <app_id>: The unique identifier of the app.
+	* `app_id`: The unique identifier of the app.
 * Required Options:
 	* --release_channel_id: The release channel to be shared.
 	* --organization_slug: The organization slug with which the app is to be shared.
@@ -125,9 +125,9 @@ These commands manage app-related operations.
 
 ##### revoke
 * Usage:
-`abxr-cli apps revoke <app_id> --release_channel_id RELEASE_CHANNEL_ID --organization_slug ORGANIZATION_SLUG`
+`abxr-cli apps revoke app_id --release_channel_id RELEASE_CHANNEL_ID --organization_slug ORGANIZATION_SLUG`
 * Positional Argument:
-	* <app_id>: The unique identifier of the app.
+	* `app_id`: The unique identifier of the app.
 * Required Options:
 	* --release_channel_id: The release channel from which to revoke sharing.
 	* --organization_slug: The organization slug from which the app sharing should be revoked.
@@ -228,9 +228,9 @@ These commands are used for file-related operations.
 
 ##### details
 * Usage:
-`abxr-cli files details <file_id>`
+`abxr-cli files details file_id`
 * Positional Argument:
-	* <file_id>: The unique identifier of the file.
+	* `file_id`: The unique identifier of the file.
 * Description: Get detailed information for a specific file.
 
 ### Devices Commands
@@ -247,17 +247,17 @@ These commands are used for device-related operations
 
 ##### details
 * Usage:
-`abxr-cli devices details <device_id>`
+`abxr-cli devices details device_id`
 * Positional Argument:
-    * <device_id>: The unique identifier for the device.
+    * `device_id`: The unique identifier for the device.
 * Description: Get detailed information about a device.
 
 
 ##### launch
 * Usage:
-`abxr-cli devices launch <device_id> --app_id=<app_id>`
+`abxr-cli devices launch device_id --app_id=app_id`
 * Positional Argument:
-    * <device_id>: The unique identifier for the device.
+    * `device_id`: The unique identifier for the device.
 * Required Options:
     * --app_id: The unique identifier of the application you want to launch
 * Description: Launch an application immediately on a device.
@@ -265,9 +265,9 @@ These commands are used for device-related operations
 
 ##### reboot
 * Usage:
-`abxr-cli devices reboot <device_id>`
+`abxr-cli devices reboot device_id`
 * Positional Argument:
-    * <device_id>: The unique identifier for the device.
+    * `device_id`: The unique identifier for the device.
 * Description: Reboot a device immediately.
 
 
@@ -344,4 +344,3 @@ If the original upload used a custom device path, you must provide it when resum
 * If the API token is missing (not provided via --token or environment variables), the tool will print:
 
 `API Token is required. Please set the ABXR_API_TOKEN environment variable or use the --token command line param`
-
