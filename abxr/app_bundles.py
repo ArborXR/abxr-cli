@@ -240,8 +240,13 @@ class AppBundlesService(ApiService):
                 app_bundle_id=app_bundle_id
             )
 
-    def _scan_folder(self, folder_path, silent=False):
-        """Scan folder for build and bundle files, calculate hashes
+    def _scan_folder(self, folder_path, apk_path, silent=False):
+        """Scan folder for bundle files and validate APK, calculate hashes
+
+        Args:
+            folder_path: Path to folder containing bundle files
+            apk_path: Path to APK/ZIP file
+            silent: Suppress output
 
         Returns:
             tuple: (folder, build_file, build_hash, file_hashes_dict)
@@ -255,20 +260,13 @@ class AppBundlesService(ApiService):
         if not folder.is_dir():
             raise ValueError(f"Folder path does not exist: {folder_path}")
 
-        # Find single APK or ZIP file
-        apk_files = list(folder.glob('*.apk'))
-        zip_files = list(folder.glob('*.zip'))
-        build_files = apk_files + zip_files
-
-        if len(build_files) == 0:
-            raise ValueError(f"No APK or ZIP file found in folder: {folder_path}")
-        elif len(build_files) > 1:
-            raise ValueError(f"Multiple APK/ZIP files found in folder. Expected exactly one. Found: {[f.name for f in build_files]}")
-
-        build_file = build_files[0]
+        # Validate APK path
+        build_file = Path(apk_path)
+        if not build_file.exists() or not build_file.is_file():
+            raise ValueError(f"APK file not found: {apk_path}")
 
         if not silent:
-            print(f"Found build file: {build_file.name}")
+            print(f"Using build file: {build_file.name}")
 
         # Calculate build hash
         if not silent:
@@ -318,10 +316,20 @@ class AppBundlesService(ApiService):
 
         return response.json()
 
-    def upload_app_bundle(self, app_id, folder_path, bundle_name, version_number, release_notes, silent):
-        """Upload APK/ZIP and all bundle files from folder with hash-based deduplication, then finalize bundle"""
+    def upload_app_bundle(self, app_id, folder_path, bundle_name, version_number, release_notes, silent, apk_path):
+        """Upload APK/ZIP and all bundle files from folder with hash-based deduplication, then finalize bundle
+
+        Args:
+            app_id: ID of the app
+            folder_path: Path to folder containing bundle files
+            bundle_name: Name for the bundle
+            version_number: Optional version number for the build
+            release_notes: Optional release notes
+            silent: Suppress output
+            apk_path: Path to APK/ZIP file
+        """
         # Scan folder for build and files
-        folder, build_file, build_hash, file_hashes = self._scan_folder(folder_path, silent)
+        folder, build_file, build_hash, file_hashes = self._scan_folder(folder_path, apk_path, silent)
         all_files = list(file_hashes.keys())
 
         # Query for existing resources
@@ -455,12 +463,13 @@ class AppBundlesService(ApiService):
 
         return finalize_response
 
-    def resume_app_bundle(self, bundle_id, folder_path, silent):
+    def resume_app_bundle(self, bundle_id, apk_path, folder_path, silent):
         """Resume a failed or interrupted bundle upload
 
         Args:
             bundle_id: ID of the existing bundle to resume
-            folder_path: Path to folder containing build and files
+            apk_path: Path to APK file
+            folder_path: Path to folder containing bundle files
             silent: Suppress output
 
         Raises:
@@ -476,8 +485,8 @@ class AppBundlesService(ApiService):
         if bundle_status != 'pending':
             raise ValueError(f"Cannot resume bundle - status is '{bundle_status}'. Only 'pending' bundles can be resumed.")
 
-        # Scan local folder
-        folder, build_file, build_hash, file_hashes = self._scan_folder(folder_path, silent)
+        # Scan local folder with provided APK path
+        folder, build_file, build_hash, file_hashes = self._scan_folder(folder_path, apk_path, silent)
 
         # Validate build matches
         bundle_build = bundle.get('appBuild', {})
@@ -578,6 +587,7 @@ class CommandHandler:
         elif self.args.app_bundles_command == Commands.RESUME.value:
             result = self.service.resume_app_bundle(
                 self.args.bundle_id,
+                self.args.apk_path,
                 self.args.folder_path,
                 self.args.silent
             )
