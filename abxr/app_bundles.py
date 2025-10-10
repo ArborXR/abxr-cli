@@ -16,6 +16,8 @@ from abxr.api_service import ApiService
 from abxr.multipart import MultipartFileS3
 from abxr.formats import DataOutputFormats
 from abxr.output import print_formatted
+from abxr.apps import AppsService
+from abxr.files import FilesService
 
 class Commands(Enum):
     LIST = "list"             # List app bundles for an app
@@ -219,8 +221,6 @@ class AppBundlesService(ApiService):
         if not files_to_upload:
             return
 
-        from abxr.files import FilesService
-
         if not silent:
             print(f"Uploading {len(files_to_upload)} new file(s)...")
 
@@ -320,9 +320,6 @@ class AppBundlesService(ApiService):
 
     def upload_app_bundle(self, app_id, folder_path, bundle_name, version_number, release_notes, silent):
         """Upload APK/ZIP and all bundle files from folder with hash-based deduplication, then finalize bundle"""
-        from abxr.apps import AppsService
-        from abxr.files import FilesService
-
         # Scan folder for build and files
         folder, build_file, build_hash, file_hashes = self._scan_folder(folder_path, silent)
         all_files = list(file_hashes.keys())
@@ -469,8 +466,6 @@ class AppBundlesService(ApiService):
         Raises:
             ValueError: If bundle cannot be resumed (wrong status, file mismatch, etc.)
         """
-        from abxr.files import FilesService
-
         # Get bundle details
         if not silent:
             print(f"Fetching bundle details...")
