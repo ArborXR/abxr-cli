@@ -173,13 +173,13 @@ The CLI automatically detects and reuses existing builds and files based on thei
 
 ##### upload
 * Usage:
-`abxr-cli app_bundles upload <app_id> <apk_path> <bundle_folder> --bundle-name BUNDLE_NAME [--version-number VERSION] [-n NOTES] [--device-path PATH]`
+`abxr-cli app_bundles upload <app_id> <apk_path> <bundle_folder> --label LABEL [--version-number VERSION] [-n NOTES] [--device-path PATH]`
 * Positional Arguments:
     * <app_id>: The unique identifier of the app.
     * <apk_path>: Path to APK/ZIP file.
     * <bundle_folder>: Path to folder containing bundle files.
 * Required Options:
-    * --bundle-name: Name for the app bundle.
+    * --label: Label for the app bundle.
 * Optional Arguments:
     * --version-number: Version number (APK can override this value, only used for new builds).
     * -n, --notes: Release notes for the bundle.
@@ -304,15 +304,15 @@ These examples assume you have set the `ABXR_API_TOKEN` in your environment.
 
 Upload an APK and associated files from a folder:
 
-`abxr-cli app_bundles upload 123e4567-e89b-12d3-a456-426614174000 /path/to/app.apk /path/to/bundle-folder --bundle-name "Production Release v1.0"`
+`abxr-cli app_bundles upload 123e4567-e89b-12d3-a456-426614174000 /path/to/app.apk /path/to/bundle-folder --label "Production Release v1.0"`
 
 With version number and release notes:
 
-`abxr-cli app_bundles upload 123e4567-e89b-12d3-a456-426614174000 /path/to/app.apk /path/to/bundle-folder --bundle-name "Production Release v1.0" --version-number "1.0.0" --notes "Initial production release"`
+`abxr-cli app_bundles upload 123e4567-e89b-12d3-a456-426614174000 /path/to/app.apk /path/to/bundle-folder --label "Production Release v1.0" --version-number "1.0.0" --notes "Initial production release"`
 
 With a custom device path (files will be placed under /sdcard/myapp/config/):
 
-`abxr-cli app_bundles upload 123e4567-e89b-12d3-a456-426614174000 /path/to/app.apk /path/to/bundle-folder --bundle-name "Production Release v1.0" --device-path myapp/config`
+`abxr-cli app_bundles upload 123e4567-e89b-12d3-a456-426614174000 /path/to/app.apk /path/to/bundle-folder --label "Production Release v1.0" --device-path myapp/config`
 
 ### Listing app bundles
 
