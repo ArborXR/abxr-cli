@@ -36,7 +36,7 @@ class AppsService(ApiService):
         data = {'filename': file_name}
 
         if app_bundle_name:
-            data['appBundleName'] = app_bundle_name
+            data['appBundleLabel'] = app_bundle_name
 
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()

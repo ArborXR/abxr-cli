@@ -116,13 +116,18 @@ class AppBundlesService(ApiService):
         return response.json()
     
     def finalize_app_bundle(self, app_bundle_id):
-        """Finalize an app bundle to start processing"""
+        """Finalize an app bundle to start processing
+
+        Returns:
+            Empty dict (API returns 204 No Content)
+        """
         url = f'{self.base_url}/app-bundles/{app_bundle_id}/finalize'
 
         response = self.client.post(url, json={}, headers=self.headers)
         response.raise_for_status()
 
-        return response.json()
+        # API returns 204 No Content, return empty dict for consistency
+        return {}
 
     def _validate_bundle_files_match(self, bundle_files, local_file_hashes, folder, base_path=None):
         """Validate that existing bundle files match local folder structure
@@ -302,13 +307,12 @@ class AppBundlesService(ApiService):
 
         return folder, build_file, build_hash, file_hashes
 
-    def create_app_bundle_from_existing(self, app_id, build_id, bundle_name, files=None):
+    def create_app_bundle_from_existing(self, build_id, bundle_name, files=None):
         """Create an app bundle from existing build and files
 
         Args:
-            app_id: ID of the app
             build_id: ID of existing app build/version
-            bundle_name: Name for the bundle
+            bundle_name: Label for the bundle
             files: Optional list of dicts with 'fileId' and optional 'path'
 
         Returns:
@@ -317,9 +321,8 @@ class AppBundlesService(ApiService):
         url = f'{self.base_url}/app-bundles'
 
         data = {
-            'appId': app_id,
             'appBuildId': build_id,
-            'appBundleName': bundle_name
+            'appBundleLabel': bundle_name
         }
 
         if files:
@@ -386,7 +389,6 @@ class AppBundlesService(ApiService):
             if not silent:
                 print(f"Creating bundle with existing build...")
             bundle_response = self.create_app_bundle_from_existing(
-                app_id,
                 build_id,
                 bundle_name,
                 bundle_files if bundle_files else None
@@ -569,7 +571,7 @@ class CommandHandler:
             result = self.service.upload_app_bundle(
                 self.args.app_id,
                 self.args.bundle_folder,
-                self.args.bundle_name,
+                self.args.label,
                 getattr(self.args, 'version_number', None),
                 self.args.notes,
                 self.args.silent,
