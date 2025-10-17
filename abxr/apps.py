@@ -31,12 +31,12 @@ class AppsService(ApiService):
     def __init__(self, base_url, token):
         super().__init__(base_url, token)
 
-    def _initiate_upload(self, app_id, file_name, app_bundle_name=None):
+    def _initiate_upload(self, app_id, file_name, app_build_type="standalone"):
         url = f'{self.base_url}/apps/{app_id}/versions'
         data = {'filename': file_name}
 
-        if app_bundle_name:
-            data['appBundleLabel'] = app_bundle_name
+        if app_build_type:
+            data['appBuildType'] = app_build_type
 
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
@@ -69,10 +69,10 @@ class AppsService(ApiService):
         
         return response.json()
 
-    def upload_file(self, app_id, file_path, version_number, release_notes, silent, wait, max_wait_time_sec=60, app_bundle_name=None):
+    def upload_file(self, app_id, file_path, version_number, release_notes, silent, wait, max_wait_time_sec=60, app_build_type="standalone"):
         file = MultipartFileS3(file_path)
 
-        response = self._initiate_upload(app_id, file.file_name, app_bundle_name)
+        response = self._initiate_upload(app_id, file.file_name, app_build_type)
 
         upload_id = response['uploadId']
         key = response['key']

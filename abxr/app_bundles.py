@@ -119,15 +119,14 @@ class AppBundlesService(ApiService):
         """Finalize an app bundle to start processing
 
         Returns:
-            Empty dict (API returns 204 No Content)
+            AppBundle object with id, status, label, appBuild, createdAt, updatedAt
         """
         url = f'{self.base_url}/app-bundles/{app_bundle_id}/finalize'
 
         response = self.client.post(url, json={}, headers=self.headers)
         response.raise_for_status()
 
-        # API returns 204 No Content, return empty dict for consistency
-        return {}
+        return response.json()
 
     def _validate_bundle_files_match(self, bundle_files, local_file_hashes, folder, base_path=None):
         """Validate that existing bundle files match local folder structure
@@ -227,6 +226,27 @@ class AppBundlesService(ApiService):
             })
         return files_to_add
 
+    def _finalize_and_return_bundle_info(self, bundle_id, silent):
+        """Finalize bundle and return bundle info from API
+
+        Args:
+            bundle_id: ID of the bundle to finalize
+            silent: Suppress output
+
+        Returns:
+            AppBundle object from API with full details
+        """
+        if not silent:
+            print(f"Finalizing bundle...")
+
+        bundle_response = self.finalize_app_bundle(bundle_id)
+
+        if not silent:
+            print(f"Bundle finalized successfully. Bundle is processing and will be available once all build and files are processed and available.")
+            print(f"Check bundle status: abxr-cli app_bundles details {bundle_id}")
+
+        return bundle_response
+
     def _upload_bundle_files(self, files_to_upload, folder, app_bundle_id, silent, base_path=None):
         """Upload bundle files to an app bundle
 
@@ -307,12 +327,11 @@ class AppBundlesService(ApiService):
 
         return folder, build_file, build_hash, file_hashes
 
-    def create_app_bundle_from_existing(self, build_id, bundle_name, files=None):
+    def create_app_bundle_from_existing(self, build_id, files=None):
         """Create an app bundle from existing build and files
 
         Args:
             build_id: ID of existing app build/version
-            bundle_name: Label for the bundle
             files: Optional list of dicts with 'fileId' and optional 'path'
 
         Returns:
@@ -321,8 +340,7 @@ class AppBundlesService(ApiService):
         url = f'{self.base_url}/app-bundles'
 
         data = {
-            'appBuildId': build_id,
-            'appBundleLabel': bundle_name
+            'appBuildId': build_id
         }
 
         if files:
@@ -333,13 +351,12 @@ class AppBundlesService(ApiService):
 
         return response.json()
 
-    def upload_app_bundle(self, app_id, folder_path, bundle_name, version_number, release_notes, silent, apk_path, device_path=None):
+    def upload_app_bundle(self, app_id, folder_path, version_number, release_notes, silent, apk_path, device_path=None):
         """Upload APK/ZIP and all bundle files from folder with hash-based deduplication, then finalize bundle
 
         Args:
             app_id: ID of the app
             folder_path: Path to folder containing bundle files
-            bundle_name: Name for the bundle
             version_number: Optional version number for the build
             release_notes: Optional release notes
             silent: Suppress output
@@ -390,7 +407,6 @@ class AppBundlesService(ApiService):
                 print(f"Creating bundle with existing build...")
             bundle_response = self.create_app_bundle_from_existing(
                 build_id,
-                bundle_name,
                 bundle_files if bundle_files else None
             )
 
@@ -418,7 +434,7 @@ class AppBundlesService(ApiService):
         else:
             # Build doesn't exist - upload it
             if not silent:
-                print(f"Existing build not found, uploading new build and creating bundle '{bundle_name}'...")
+                print(f"Existing build not found, uploading new build and creating bundle...")
 
             upload_response = apps_service.upload_file(
                 app_id,
@@ -427,7 +443,7 @@ class AppBundlesService(ApiService):
                 release_notes,
                 silent,
                 wait=False,
-                app_bundle_name=bundle_name
+                app_build_type="app-bundle"
             )
 
             app_bundle_id = upload_response.get('appBundleId')
@@ -468,17 +484,8 @@ class AppBundlesService(ApiService):
                 print(f"  abxr-cli app_bundles resume {app_bundle_id} {folder_path}")
                 raise
 
-        # Finalize the bundle
-        if not silent:
-            print(f"Finalizing bundle...")
-
-        finalize_response = self.finalize_app_bundle(app_bundle_id)
-
-        if not silent:
-            print(f"Bundle finalized successfully. Bundle is processing and will be available once all build and files are processed and available.")
-            print(f"Check bundle status: abxr-cli app_bundles details {app_bundle_id}")
-
-        return finalize_response
+        # Finalize and return bundle info
+        return self._finalize_and_return_bundle_info(app_bundle_id, silent)
 
     def resume_app_bundle(self, bundle_id, apk_path, folder_path, silent, device_path=None):
         """Resume a failed or interrupted bundle upload
@@ -548,17 +555,8 @@ class AppBundlesService(ApiService):
         else:
             self._upload_bundle_files(files_to_upload, folder, bundle_id, silent, device_path)
 
-        # Finalize the bundle
-        if not silent:
-            print(f"Finalizing bundle...")
-
-        finalize_response = self.finalize_app_bundle(bundle_id)
-
-        if not silent:
-            print(f"Bundle finalized successfully. Bundle is processing and will be available once all build and files are processed and available.")
-            print(f"Check bundle status: abxr-cli app_bundles details {bundle_id}")
-
-        return finalize_response
+        # Finalize and return bundle info
+        return self._finalize_and_return_bundle_info(bundle_id, silent)
 
 
 class CommandHandler:
@@ -571,7 +569,6 @@ class CommandHandler:
             result = self.service.upload_app_bundle(
                 self.args.app_id,
                 self.args.bundle_folder,
-                self.args.label,
                 getattr(self.args, 'version_number', None),
                 self.args.notes,
                 self.args.silent,

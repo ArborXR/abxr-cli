@@ -372,11 +372,10 @@ def main():
     app_bundles_subparsers = app_bundles_parser.add_subparsers(dest="app_bundles_command", help="App Bundles command help")
 
     # Upload an app bundle
-    app_bundles_upload_parser = app_bundles_subparsers.add_parser(AppBundlesCommands.UPLOAD.value, help="Upload an app bundle with APK and files")
+    app_bundles_upload_parser = app_bundles_subparsers.add_parser(AppBundlesCommands.UPLOAD.value, help="Upload an app bundle with APK and files (bundle labels are auto-generated)")
     app_bundles_upload_parser.add_argument("app_id", help="ID of the app", type=str)
     app_bundles_upload_parser.add_argument("apk_path", help="Path to APK/ZIP file", type=str)
     app_bundles_upload_parser.add_argument("bundle_folder", help="Path to folder containing bundle files", type=str)
-    app_bundles_upload_parser.add_argument("--label", help="Label for the app bundle", type=str, required=True)
     app_bundles_upload_parser.add_argument("--version-number", help="Version number (APK can override this value)", type=str)
     app_bundles_upload_parser.add_argument("-n", "--notes", help="Release notes for the bundle", type=str)
     app_bundles_upload_parser.add_argument("--device-path", help="Optional device path relative to /sdcard for bundle files", type=str)
