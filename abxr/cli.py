@@ -374,7 +374,7 @@ def main():
     # Upload an app bundle
     app_bundles_upload_parser = app_bundles_subparsers.add_parser(AppBundlesCommands.UPLOAD.value, help="Upload an app bundle with APK and files (bundle labels are auto-generated)")
     app_bundles_upload_parser.add_argument("app_id", help="ID of the app", type=str)
-    app_bundles_upload_parser.add_argument("apk_path", help="Path to APK/ZIP file", type=str)
+    app_bundles_upload_parser.add_argument("apk_path", help="Path to APK file", type=str)
     app_bundles_upload_parser.add_argument("bundle_folder", help="Path to folder containing bundle files", type=str)
     app_bundles_upload_parser.add_argument("--version-number", help="Version number (APK can override this value)", type=str)
     app_bundles_upload_parser.add_argument("-n", "--notes", help="Release notes for the bundle", type=str)
@@ -395,6 +395,13 @@ def main():
     app_bundles_resume_parser.add_argument("apk_path", help="Path to APK file", type=str)
     app_bundles_resume_parser.add_argument("folder_path", help="Path to folder with bundle files", type=str)
     app_bundles_resume_parser.add_argument("--device-path", help="Optional device path relative to /sdcard for bundle files (must match original upload)", type=str)
+
+    # Update an app bundle's label
+    app_bundles_update_label_parser = app_bundles_subparsers.add_parser(AppBundlesCommands.UPDATE_LABEL.value, help="Update an app bundle's label")
+    app_bundles_update_label_parser.add_argument("app_bundle_id", help="ID of the app bundle", type=str)
+    label_group = app_bundles_update_label_parser.add_mutually_exclusive_group(required=True)
+    label_group.add_argument("--label", help="New label for the bundle (max 60 characters)", type=str)
+    label_group.add_argument("--clear", help="Remove the label from the bundle", action="store_true")
 
     args = parser.parse_args()
 

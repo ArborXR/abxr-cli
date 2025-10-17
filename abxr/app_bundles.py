@@ -26,6 +26,7 @@ class Commands(Enum):
     ADD_FILES = "add_files"   # Add files to an app bundle
     FINALIZE = "finalize"     # Finalize an app bundle
     RESUME = "resume"         # Resume a failed bundle upload
+    UPDATE_LABEL = "update_label"  # Update a bundle's label
 
 class AppBundlesService(ApiService):
     MAX_PARTS_PER_REQUEST = 4
@@ -124,6 +125,25 @@ class AppBundlesService(ApiService):
         url = f'{self.base_url}/app-bundles/{app_bundle_id}/finalize'
 
         response = self.client.post(url, json={}, headers=self.headers)
+        response.raise_for_status()
+
+        return response.json()
+
+    def update_app_bundle_label(self, app_bundle_id, label):
+        """Update an app bundle's label
+
+        Args:
+            app_bundle_id: ID of the app bundle to update
+            label: New label string (max 60 chars) or None to remove the label
+
+        Returns:
+            AppBundle object with updated label
+        """
+        url = f'{self.base_url}/app-bundles/{app_bundle_id}'
+
+        data = {'label': label}
+
+        response = self.client.patch(url, json=data, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
@@ -284,13 +304,13 @@ class AppBundlesService(ApiService):
 
         Args:
             folder_path: Path to folder containing bundle files
-            apk_path: Path to APK/ZIP file
+            apk_path: Path to APK file
             silent: Suppress output
 
         Returns:
             tuple: (folder, build_file, build_hash, file_hashes_dict)
                 - folder: Path object
-                - build_file: Path to APK/ZIP file
+                - build_file: Path to APK file
                 - build_hash: SHA-256 hash of build
                 - file_hashes_dict: {Path: sha512_hash} for all bundle files
         """
@@ -303,6 +323,14 @@ class AppBundlesService(ApiService):
         build_file = Path(apk_path)
         if not build_file.exists() or not build_file.is_file():
             raise ValueError(f"APK file not found: {apk_path}")
+
+        # Validate file extension - .zip not supported for bundles
+        if build_file.suffix.lower() == '.zip':
+            raise ValueError(
+                f"ZIP files are not supported for app bundle uploads.\n"
+                f"Please unpack '{build_file.name}' to a folder and use the extracted folder as the bundle_folder parameter.\n"
+                f"The APK file should be specified separately with the apk_path parameter."
+            )
 
         if not silent:
             print(f"Using build file: {build_file.name}")
@@ -352,7 +380,7 @@ class AppBundlesService(ApiService):
         return response.json()
 
     def upload_app_bundle(self, app_id, folder_path, version_number, release_notes, silent, apk_path, device_path=None):
-        """Upload APK/ZIP and all bundle files from folder with hash-based deduplication, then finalize bundle
+        """Upload APK and all bundle files from folder with hash-based deduplication, then finalize bundle
 
         Args:
             app_id: ID of the app
@@ -360,7 +388,7 @@ class AppBundlesService(ApiService):
             version_number: Optional version number for the build
             release_notes: Optional release notes
             silent: Suppress output
-            apk_path: Path to APK/ZIP file
+            apk_path: Path to APK file
             device_path: Optional base path on device relative to /sdcard
         """
         # Scan folder for build and files
@@ -609,4 +637,10 @@ class CommandHandler:
                 self.args.silent,
                 device_path=getattr(self.args, 'device_path', None)
             )
+            print_formatted(self.args.format, result)
+
+        elif self.args.app_bundles_command == Commands.UPDATE_LABEL.value:
+            # Determine label value: None if --clear flag is used, otherwise use --label value
+            label = None if self.args.clear else self.args.label
+            result = self.service.update_app_bundle_label(self.args.app_bundle_id, label)
             print_formatted(self.args.format, result)
