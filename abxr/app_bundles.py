@@ -456,7 +456,8 @@ class AppBundlesService(ApiService):
                 print(f"\nError during bundle upload: {e}")
                 print(f"\nBundle ID: {app_bundle_id}")
                 print(f"The bundle is in 'pending' state and can be resumed using:")
-                print(f"  abxr-cli app_bundles resume {app_bundle_id} {folder_path}")
+                device_path_arg = f" --device-path {device_path}" if device_path else ""
+                print(f"  abxr-cli app_bundles resume {app_bundle_id} {str(build_file)} {folder_path}{device_path_arg}")
                 raise
 
         else:
@@ -509,7 +510,8 @@ class AppBundlesService(ApiService):
                 print(f"\nError during bundle upload: {e}")
                 print(f"\nBundle ID: {app_bundle_id}")
                 print(f"The bundle is in 'pending' state and can be resumed using:")
-                print(f"  abxr-cli app_bundles resume {app_bundle_id} {folder_path}")
+                device_path_arg = f" --device-path {device_path}" if device_path else ""
+                print(f"  abxr-cli app_bundles resume {app_bundle_id} {str(build_file)} {folder_path}{device_path_arg}")
                 raise
 
         # Finalize and return bundle info
