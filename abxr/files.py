@@ -39,7 +39,18 @@ class FilesService(ApiService):
             data['appBundleId'] = app_bundle_id
 
         response = self.client.post(url, json=data, headers=self.headers)
-        response.raise_for_status()
+
+        if not response.ok:
+            # Try to get detailed error message from API
+            try:
+                error_data = response.json()
+                error_msg = error_data.get('message', str(response.status_code))
+                errors = error_data.get('errors', {})
+                raise Exception(f"File upload initiation failed: {error_msg}\nErrors: {errors}\nRequest data: {data}")
+            except Exception as e:
+                if 'File upload initiation failed' in str(e):
+                    raise
+                response.raise_for_status()
 
         return response.json()
 

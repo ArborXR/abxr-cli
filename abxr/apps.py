@@ -6,6 +6,10 @@
 
 from tqdm import tqdm
 import time
+import zipfile
+import tempfile
+import shutil
+import os
 
 from enum import Enum
 
@@ -273,6 +277,120 @@ class AppsService(ApiService):
 
         return response.json()
 
+def _handle_zip_upload(args, apps_service):
+    """Handle ZIP file upload by extracting and converting to bundle or regular upload
+
+    Args:
+        args: Command-line arguments
+        apps_service: AppsService instance
+
+    Returns:
+        Upload response
+    """
+    zip_path = args.filename
+
+    if not args.silent:
+        print(f"Extracting ZIP file...")
+
+    # Create temporary directory
+    temp_dir = tempfile.mkdtemp(prefix='abxr_zip_')
+
+    try:
+        # Extract ZIP
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(temp_dir)
+
+        # Find all APK files at root (case-insensitive, no subdirectories)
+        apk_files = []
+        for item in os.listdir(temp_dir):
+            item_path = os.path.join(temp_dir, item)
+            if os.path.isfile(item_path) and item.lower().endswith('.apk'):
+                apk_files.append(item_path)
+
+        # Validate APK count
+        if len(apk_files) == 0:
+            raise ValueError("No APK file found at root of ZIP")
+        elif len(apk_files) > 1:
+            raise ValueError(f"Multiple APK files found at root of ZIP ({len(apk_files)} APKs found)")
+
+        apk_path = apk_files[0]
+
+        # Find all other files (excluding system files)
+        system_files = {'.DS_Store', 'Thumbs.db', '__MACOSX'}
+        other_files = []
+        for root, dirs, files in os.walk(temp_dir):
+            # Skip __MACOSX directories
+            if '__MACOSX' in root:
+                continue
+            for file in files:
+                file_path = os.path.join(root, file)
+                # Skip if it's the APK or a system file
+                if file_path != apk_path and file not in system_files:
+                    other_files.append(file_path)
+
+        # If only APK, use normal upload flow
+        if not other_files:
+            if not args.silent:
+                print(f"ZIP contains only APK, using standard upload...")
+            result = apps_service.upload_file(
+                args.app_id,
+                apk_path,
+                args.version_number,
+                args.notes,
+                args.silent,
+                args.wait,
+                args.wait_time
+            )
+            return result
+
+        # ZIP contains APK + other files - create bundle
+        if not args.silent:
+            print(f"ZIP contains APK and {len(other_files)} additional file(s), creating app bundle...")
+
+        # Get app details to retrieve package name
+        app_detail = apps_service.get_app_detail(args.app_id)
+        package_name = app_detail.get('packageName')
+
+        if not package_name:
+            raise ValueError("Cannot create bundle from ZIP: app does not have a package name set. Upload an APK first to set the package name.")
+
+        # Restructure: move OBB files to Android/obb/<package-name>/
+        obb_dir = os.path.join(temp_dir, 'Android', 'obb', package_name)
+        for file_path in other_files:
+            if file_path.lower().endswith('.obb'):
+                # Create OBB directory if needed
+                os.makedirs(obb_dir, exist_ok=True)
+                # Move OBB file
+                file_name = os.path.basename(file_path)
+                new_path = os.path.join(obb_dir, file_name)
+                shutil.move(file_path, new_path)
+                if not args.silent:
+                    print(f"Moved {file_name} to Android/obb/{package_name}/")
+
+        # Import AppBundlesService
+        from abxr.app_bundles import AppBundlesService
+
+        # Create bundle service
+        bundle_service = AppBundlesService(args.url, args.token)
+
+        # Upload as bundle
+        result = bundle_service.upload_app_bundle(
+            args.app_id,
+            temp_dir,
+            args.version_number,
+            args.notes,
+            args.silent,
+            apk_path=apk_path,
+            device_path=None
+        )
+
+        return result
+
+    finally:
+        # Clean up temp directory
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+
 class CommandHandler:
     def __init__(self, args):
         self.args = args
@@ -303,7 +421,11 @@ class CommandHandler:
             self.service.set_version_for_release_channel(self.args.app_id, self.args.release_channel_id, self.args.version_id)
 
         elif self.args.apps_command == Commands.UPLOAD.value:
-            app_version = self.service.upload_file(self.args.app_id, self.args.filename, self.args.version_number, self.args.notes, self.args.silent, self.args.wait, self.args.wait_time)
+            # Check if file is a ZIP - if so, extract and convert to bundle or regular upload
+            if self.args.filename.lower().endswith('.zip'):
+                app_version = _handle_zip_upload(self.args, self.service)
+            else:
+                app_version = self.service.upload_file(self.args.app_id, self.args.filename, self.args.version_number, self.args.notes, self.args.silent, self.args.wait, self.args.wait_time)
             print_formatted(self.args.format, app_version)
 
         elif self.args.apps_command == Commands.SHARE.value:
