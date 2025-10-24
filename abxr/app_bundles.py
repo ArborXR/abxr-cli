@@ -12,7 +12,7 @@ from pathlib import Path
 
 from enum import Enum
 
-from abxr.api_service import ApiService
+from abxr.api_service import ApiService, SYSTEM_FILES_TO_EXCLUDE, SYSTEM_DIRS_TO_EXCLUDE
 from abxr.multipart import MultipartFileS3
 from abxr.formats import DataOutputFormats
 from abxr.output import print_formatted
@@ -344,7 +344,8 @@ class AppBundlesService(ApiService):
         all_files = [f for f in folder.rglob('*')
                      if f.is_file()
                      and f != build_file
-                     and f.name not in ['.DS_Store', 'Thumbs.db']]
+                     and f.name not in SYSTEM_FILES_TO_EXCLUDE
+                     and not any(sys_dir in str(f) for sys_dir in SYSTEM_DIRS_TO_EXCLUDE)]
 
         # Calculate file hashes
         file_hashes = {}

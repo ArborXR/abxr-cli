@@ -5,6 +5,10 @@
 
 import requests
 
+# System files and directories to exclude from bundle processing
+SYSTEM_FILES_TO_EXCLUDE = {'.DS_Store', 'Thumbs.db'}
+SYSTEM_DIRS_TO_EXCLUDE = {'__MACOSX'}
+
 class ApiService:
     def __init__(self, base_url, token):
         self.base_url = base_url

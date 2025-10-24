@@ -13,7 +13,7 @@ import os
 
 from enum import Enum
 
-from abxr.api_service import ApiService
+from abxr.api_service import ApiService, SYSTEM_FILES_TO_EXCLUDE, SYSTEM_DIRS_TO_EXCLUDE
 from abxr.multipart import MultipartFileS3
 from abxr.formats import DataOutputFormats
 from abxr.output import print_formatted
@@ -316,16 +316,15 @@ def _handle_zip_upload(args, apps_service):
         apk_path = apk_files[0]
 
         # Find all other files (excluding system files)
-        system_files = {'.DS_Store', 'Thumbs.db', '__MACOSX'}
         other_files = []
         for root, dirs, files in os.walk(temp_dir):
-            # Skip __MACOSX directories
-            if '__MACOSX' in root:
+            # Skip system directories
+            if any(sys_dir in root for sys_dir in SYSTEM_DIRS_TO_EXCLUDE):
                 continue
             for file in files:
                 file_path = os.path.join(root, file)
                 # Skip if it's the APK or a system file
-                if file_path != apk_path and file not in system_files:
+                if file_path != apk_path and file not in SYSTEM_FILES_TO_EXCLUDE:
                     other_files.append(file_path)
 
         # If only APK, use normal upload flow
