@@ -4,9 +4,6 @@
 # Released under the MIT License. See LICENSE file for details.
 #
 
-import requests
-import yaml
-import json
 from tqdm import tqdm
 
 from enum import Enum
@@ -46,7 +43,7 @@ class DevicesService(ApiService):
     def get_all_devices(self):
         url = f'{self.base_url}/devices?per_page=20'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         json = response.json()
@@ -55,7 +52,7 @@ class DevicesService(ApiService):
 
         if json['links']:
             while json['links']['next']:
-                response = requests.get(json['links']['next'], headers=self.headers)
+                response = self.client.get(json['links']['next'], headers=self.headers)
                 response.raise_for_status()
                 json = response.json()
 
@@ -66,7 +63,7 @@ class DevicesService(ApiService):
     def get_device_detail(self, device_id):
         url = f'{self.base_url}/devices/{device_id}'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
@@ -74,7 +71,7 @@ class DevicesService(ApiService):
     def launch_app(self, device_id, app_id):
         url = f'{self.base_url}/devices/{device_id}/launch/{app_id}'
 
-        response = requests.post(url, headers=self.headers)
+        response = self.client.post(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
@@ -82,7 +79,7 @@ class DevicesService(ApiService):
     def reboot_device(self, device_id):
         url = f'{self.base_url}/devices/{device_id}/reboot'
         
-        response = requests.post(url, headers=self.headers)
+        response = self.client.post(url, headers=self.headers)
         response.raise_for_status()
         
         return response.json()
@@ -90,7 +87,7 @@ class DevicesService(ApiService):
     def shutdown_device(self, device_id):
         url = f'{self.base_url}/devices/{device_id}/shutdown'
 
-        response = requests.post(url, headers=self.headers)
+        response = self.client.post(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
@@ -98,7 +95,7 @@ class DevicesService(ApiService):
     def factory_reset_device(self, device_id):
         url = f'{self.base_url}/devices/{device_id}/factory-reset'
 
-        response = requests.post(url, headers=self.headers)
+        response = self.client.post(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
@@ -106,7 +103,7 @@ class DevicesService(ApiService):
     def list_release_channels_for_device(self, device_id):
         url = f'{self.base_url}/devices/{device_id}/release-channels?per_page=20'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         json = response.json()
@@ -115,7 +112,7 @@ class DevicesService(ApiService):
 
         if json['links']:
             while json['links']['next']:
-                response = requests.get(json['links']['next'], headers=self.headers)
+                response = self.client.get(json['links']['next'], headers=self.headers)
                 response.raise_for_status()
                 json = response.json()
 
@@ -130,7 +127,7 @@ class DevicesService(ApiService):
             'releaseChannelId': release_channel_id
         }
 
-        response = requests.post(url, json=data, headers=self.headers)
+        response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
         
         return response.json()
@@ -142,7 +139,7 @@ class DevicesService(ApiService):
             'releaseChannelId': release_channel_id
         }
 
-        response = requests.delete(url, json=data, headers=self.headers)
+        response = self.client.delete(url, json=data, headers=self.headers)
         response.raise_for_status()
         
         return response.json()
@@ -150,7 +147,7 @@ class DevicesService(ApiService):
     def list_files_for_device(self, device_id):
         url = f'{self.base_url}/devices/{device_id}/files?per_page=20'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         json = response.json()
@@ -159,7 +156,7 @@ class DevicesService(ApiService):
 
         if json['links']:
             while json['links']['next']:
-                response = requests.get(json['links']['next'], headers=self.headers)
+                response = self.client.get(json['links']['next'], headers=self.headers)
                 response.raise_for_status()
                 json = response.json()
 
@@ -174,7 +171,7 @@ class DevicesService(ApiService):
             'fileId': file_id
         }
 
-        response = requests.post(url, json=data, headers=self.headers)
+        response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
         
         return response.json()
@@ -186,7 +183,7 @@ class DevicesService(ApiService):
             'fileId': file_id
         }
 
-        response = requests.delete(url, json=data, headers=self.headers)
+        response = self.client.delete(url, json=data, headers=self.headers)
         response.raise_for_status()
         
         return response.json()
@@ -194,7 +191,7 @@ class DevicesService(ApiService):
     def list_videos_for_device(self, device_id):
         url = f'{self.base_url}/devices/{device_id}/videos?per_page=20'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         json = response.json()
@@ -203,7 +200,7 @@ class DevicesService(ApiService):
 
         if json['links']:
             while json['links']['next']:
-                response = requests.get(json['links']['next'], headers=self.headers)
+                response = self.client.get(json['links']['next'], headers=self.headers)
                 response.raise_for_status()
                 json = response.json()
 
@@ -218,7 +215,7 @@ class DevicesService(ApiService):
             'videoId': video_id
         }
 
-        response = requests.post(url, json=data, headers=self.headers)
+        response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
         
         return response.json()
@@ -230,7 +227,7 @@ class DevicesService(ApiService):
             'videoId': video_id
         }
 
-        response = requests.delete(url, json=data, headers=self.headers)
+        response = self.client.delete(url, json=data, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
@@ -243,7 +240,7 @@ class DevicesService(ApiService):
             'groupId': new_organization_group_id
         }
 
-        response = requests.post(url, json=data, headers=self.headers)
+        response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
@@ -255,7 +252,7 @@ class DevicesService(ApiService):
             'tags': tags
         }
 
-        response = requests.post(url, json=data, headers=self.headers)
+        response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
@@ -267,7 +264,7 @@ class DevicesService(ApiService):
             'tags': tags
         }
 
-        response = requests.post(url, json=data, headers=self.headers)
+        response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
 
         return response.json()

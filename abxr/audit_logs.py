@@ -3,11 +3,6 @@
 # Copyright (c) 2024-2025 ABXR Labs, Inc.
 # Released under the MIT License. See LICENSE file for details.
 #
-
-import requests
-import yaml
-import json
-
 from enum import Enum
 
 from abxr.api_service import ApiService
@@ -31,7 +26,7 @@ class AuditLogsService(ApiService):
         if end_time:
             url += f'&end_time={end_time}'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         json = response.json()
@@ -40,7 +35,7 @@ class AuditLogsService(ApiService):
 
         if json['links']:
             while json['links']['next']:
-                response = requests.get(json['links']['next'], headers=self.headers)
+                response = self.client.get(json['links']['next'], headers=self.headers)
                 response.raise_for_status()
                 json = response.json()
 

@@ -4,10 +4,6 @@
 # Released under the MIT License. See LICENSE file for details.
 #
 
-import requests
-import yaml
-import json
-
 from enum import Enum
 
 from abxr.api_service import ApiService
@@ -39,7 +35,7 @@ class GroupsService(ApiService):
     def get_all_groups(self):
         url = f'{self.base_url}/groups?per_page=20'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         json = response.json()
@@ -48,7 +44,7 @@ class GroupsService(ApiService):
 
         if json['links']:
             while json['links']['next']:
-                response = requests.get(json['links']['next'], headers=self.headers)
+                response = self.client.get(json['links']['next'], headers=self.headers)
                 response.raise_for_status()
                 json = response.json()
 
@@ -63,7 +59,7 @@ class GroupsService(ApiService):
             "parent_id": parent_id
         }
 
-        response = requests.post(url, headers=self.headers, json=payload)
+        response = self.client.post(url, headers=self.headers, json=payload)
         response.raise_for_status()
 
         return response.json()
@@ -71,7 +67,7 @@ class GroupsService(ApiService):
     def get_group_details(self, group_id):
         url = f'{self.base_url}/groups/{group_id}'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
@@ -84,7 +80,7 @@ class GroupsService(ApiService):
             "parent_id": parent_id
         }
 
-        response = requests.put(url, headers=self.headers, json=payload)
+        response = self.client.put(url, headers=self.headers, json=payload)
         response.raise_for_status()
 
         return response.json()
@@ -92,7 +88,7 @@ class GroupsService(ApiService):
     def delete_group(self, group_id):
         url = f'{self.base_url}/groups/{group_id}'
 
-        response = requests.delete(url, headers=self.headers)
+        response = self.client.delete(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
@@ -100,7 +96,7 @@ class GroupsService(ApiService):
     def configure_group(self, group_id):
         url = f'{self.base_url}/groups/{group_id}/configure'
 
-        response = requests.patch(url, headers=self.headers)
+        response = self.client.patch(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
@@ -112,7 +108,7 @@ class GroupsService(ApiService):
             "name": new_group_name
         }
 
-        response = requests.post(url, headers=self.headers, json=payload)
+        response = self.client.post(url, headers=self.headers, json=payload)
         response.raise_for_status()
 
         return response.json()
@@ -120,7 +116,7 @@ class GroupsService(ApiService):
     def get_group_release_channels(self, group_id):
         url = f'{self.base_url}/groups/{group_id}/release-channels?per_page=20'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         json = response.json()
@@ -129,7 +125,7 @@ class GroupsService(ApiService):
 
         if json['links']:
             while json['links']['next']:
-                response = requests.get(json['links']['next'], headers=self.headers)
+                response = self.client.get(json['links']['next'], headers=self.headers)
                 response.raise_for_status()
                 json = response.json()
 
@@ -143,7 +139,7 @@ class GroupsService(ApiService):
             "releaseChannelId": release_channel_id
         }
 
-        response = requests.post(url, headers=self.headers, json=payload)
+        response = self.client.post(url, headers=self.headers, json=payload)
         response.raise_for_status()
 
         return response.json()
@@ -151,7 +147,7 @@ class GroupsService(ApiService):
     def remove_release_channel_from_group(self, group_id, release_channel_id):
         url = f'{self.base_url}/groups/{group_id}/release-channels/{release_channel_id}'
 
-        response = requests.delete(url, headers=self.headers)
+        response = self.client.delete(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
@@ -160,7 +156,7 @@ class GroupsService(ApiService):
         url = f'{self.base_url}/groups/{group_id}/files'
         data = { 'fileId': file_id }
 
-        response = requests.post(url, json=data, headers=self.headers)
+        response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
         
         return response.json()
@@ -169,7 +165,7 @@ class GroupsService(ApiService):
         url = f'{self.base_url}/groups/{group_id}/files'
         data = { 'fileId': file_id }
 
-        response = requests.delete(url, json=data, headers=self.headers)
+        response = self.client.delete(url, json=data, headers=self.headers)
         response.raise_for_status()
         
         return response.json()
@@ -178,7 +174,7 @@ class GroupsService(ApiService):
         url = f'{self.base_url}/groups/{group_id}/videos'
         data = { 'videoId': video_id }
 
-        response = requests.post(url, json=data, headers=self.headers)
+        response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
         
         return response.json()
@@ -187,7 +183,7 @@ class GroupsService(ApiService):
         url = f'{self.base_url}/groups/{group_id}/videos'
         data = { 'videoId': video_id }
 
-        response = requests.delete(url, json=data, headers=self.headers)
+        response = self.client.delete(url, json=data, headers=self.headers)
         response.raise_for_status()
         
         return response.json()
@@ -195,7 +191,7 @@ class GroupsService(ApiService):
     def get_group_hierarchy(self):
         url = f'{self.base_url}/group-hierarchy'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()

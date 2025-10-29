@@ -4,10 +4,6 @@
 # Released under the MIT License. See LICENSE file for details.
 #
 
-import requests
-import yaml
-import json
-
 from enum import Enum
 
 from abxr.api_service import ApiService
@@ -29,7 +25,7 @@ class TagsService(ApiService):
     def get_all_tags(self):
         url = f'{self.base_url}/tags?per_page=20'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         json = response.json()
@@ -38,7 +34,7 @@ class TagsService(ApiService):
 
         if json['links']:
             while json['links']['next']:
-                response = requests.get(json['links']['next'], headers=self.headers)
+                response = self.client.get(json['links']['next'], headers=self.headers)
                 response.raise_for_status()
                 json = response.json()
 
@@ -52,7 +48,7 @@ class TagsService(ApiService):
             "name": tag_name
         }
 
-        response = requests.post(url, headers=self.headers, json=payload)
+        response = self.client.post(url, headers=self.headers, json=payload)
         response.raise_for_status()
 
         return response.json()
@@ -60,7 +56,7 @@ class TagsService(ApiService):
     def get_tag_detail(self, tag_id):
         url = f'{self.base_url}/tags/{tag_id}'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
@@ -71,7 +67,7 @@ class TagsService(ApiService):
             "name": tag_name
         }
 
-        response = requests.put(url, headers=self.headers, json=payload)
+        response = self.client.put(url, headers=self.headers, json=payload)
         response.raise_for_status()
 
         return response.json()
@@ -79,7 +75,7 @@ class TagsService(ApiService):
     def delete_tag(self, tag_id):
         url = f'{self.base_url}/tags/{tag_id}'
 
-        response = requests.delete(url, headers=self.headers)
+        response = self.client.delete(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()

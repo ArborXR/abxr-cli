@@ -4,9 +4,6 @@
 # Released under the MIT License. See LICENSE file for details.
 #
 
-import requests
-import yaml
-import json
 from tqdm import tqdm
 
 from enum import Enum
@@ -27,18 +24,23 @@ class Commands(Enum):
     GROUP_REMOVE = "remove_from_group"
 
 class FilesService(ApiService):
+    MAX_PARTS_PER_REQUEST = 4
+
     def __init__(self, base_url, token):
         super().__init__(base_url, token)
 
-    def _initiate_upload(self, file_name, device_path):
+    def _initiate_upload(self, file_name, device_path, app_bundle_id=None):
         url = f'{self.base_url}/files'
         data = {'filename': file_name,
                 'path': device_path
                 }
-        
-        response = requests.post(url, json=data, headers=self.headers)
+
+        if app_bundle_id:
+            data['appBundleId'] = app_bundle_id
+
+        response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
-        
+
         return response.json()
 
     def _presigned_url(self, file_id, upload_id, key, part_numbers):
@@ -48,7 +50,7 @@ class FilesService(ApiService):
                 'partNumbers': part_numbers 
                 }
         
-        response = requests.post(url, json=data, headers=self.headers)
+        response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
         
         return response.json()
@@ -61,15 +63,15 @@ class FilesService(ApiService):
                 'conflictStrategy': conflict_strategy
                 }
         
-        response = requests.post(url, json=data, headers=self.headers)
+        response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
         
         return response.json()
 
-    def upload_file(self, file_path, device_path, silent):
+    def upload_file(self, file_path, device_path, silent, app_bundle_id=None):
         file = MultipartFileS3(file_path)
 
-        response = self._initiate_upload(file.file_name, device_path)
+        response = self._initiate_upload(file.file_name, device_path, app_bundle_id)
 
         upload_id = response['uploadId']
         key = response['key']
@@ -82,27 +84,27 @@ class FilesService(ApiService):
         with tqdm(total=file.get_size(), unit='B', unit_scale=True, desc=f'Uploading {file.file_name}', disable=silent) as pbar:
             for i in range(0, len(part_numbers), self.MAX_PARTS_PER_REQUEST):
                 part_numbers_slice = part_numbers[i:i + self.MAX_PARTS_PER_REQUEST]
-                
+
                 presigned_url_response = self._presigned_url(file_id, upload_id, key, part_numbers_slice)
-                
+
                 for item in presigned_url_response:
                     part_number = item['partNumber']
                     presigned_url = item['presignedUrl']
 
                     part = file.get_part(part_number)
-                    response = requests.put(presigned_url, data=part)
+                    response = self.client.put(presigned_url, data=part)
                     response.raise_for_status()
 
                     uploaded_parts += [{'partNumber': part_number, 'eTag': response.headers['ETag']}]
                     pbar.update(len(part))
-                
+
             complete_response = self._complete_upload(file_id, upload_id, key, uploaded_parts)
             return complete_response
 
     def get_all_files(self):
         url = f'{self.base_url}/files?per_page=20'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         json = response.json()
@@ -111,7 +113,7 @@ class FilesService(ApiService):
 
         if json['links']:
             while json['links']['next']:
-                response = requests.get(json['links']['next'], headers=self.headers)
+                response = self.client.get(json['links']['next'], headers=self.headers)
                 response.raise_for_status()
                 json = response.json()
 
@@ -122,7 +124,7 @@ class FilesService(ApiService):
     def get_file_detail(self, file_id):
         url = f'{self.base_url}/files/{file_id}'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
@@ -130,7 +132,7 @@ class FilesService(ApiService):
     def get_all_device_files(self, device_id):
         url = f'{self.base_url}/devices/{device_id}/files?per_page=20'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         json = response.json()
@@ -139,7 +141,7 @@ class FilesService(ApiService):
 
         if json['links']:
             while json['links']['next']:
-                response = requests.get(json['links']['next'], headers=self.headers)
+                response = self.client.get(json['links']['next'], headers=self.headers)
                 response.raise_for_status()
                 json = response.json()
 
@@ -151,7 +153,7 @@ class FilesService(ApiService):
         url = f'{self.base_url}/devices/{device_id}/files'
         data = {'fileId': file_id }
         
-        response = requests.post(url, json=data, headers=self.headers)
+        response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
         
         return response.json()
@@ -160,7 +162,7 @@ class FilesService(ApiService):
         url = f'{self.base_url}/devices/{device_id}/files'
         data = {'fileId': file_id }
         
-        response = requests.delete(url, json=data, headers=self.headers)
+        response = self.client.delete(url, json=data, headers=self.headers)
         response.raise_for_status()
         
         return response.json()
@@ -169,7 +171,7 @@ class FilesService(ApiService):
         url = f'{self.base_url}/groups/{group_id}/files'
         data = { 'fileId': file_id }
 
-        response = requests.post(url, json=data, headers=self.headers)
+        response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
         
         return response.json()
@@ -178,7 +180,7 @@ class FilesService(ApiService):
         url = f'{self.base_url}/groups/{group_id}/files'
         data = { 'fileId': file_id }
 
-        response = requests.delete(url, json=data, headers=self.headers)
+        response = self.client.delete(url, json=data, headers=self.headers)
         response.raise_for_status()
         
         return response.json()

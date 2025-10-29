@@ -4,9 +4,6 @@
 # Released under the MIT License. See LICENSE file for details.
 #
 
-import requests
-import yaml
-import json
 from tqdm import tqdm
 import time
 
@@ -34,13 +31,16 @@ class AppsService(ApiService):
     def __init__(self, base_url, token):
         super().__init__(base_url, token)
 
-    def _initiate_upload(self, app_id, file_name):
+    def _initiate_upload(self, app_id, file_name, app_build_type="standalone"):
         url = f'{self.base_url}/apps/{app_id}/versions'
         data = {'filename': file_name}
-        
-        response = requests.post(url, json=data, headers=self.headers)
+
+        if app_build_type:
+            data['appBuildType'] = app_build_type
+
+        response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
-        
+
         return response.json()
 
     def _presigned_url(self, app_id, version_id, upload_id, key, part_numbers):
@@ -50,7 +50,7 @@ class AppsService(ApiService):
                 'partNumbers': part_numbers 
                 }
         
-        response = requests.post(url, json=data, headers=self.headers)
+        response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
         
         return response.json()
@@ -64,19 +64,20 @@ class AppsService(ApiService):
                 'releaseNotes': release_notes
                 }
         
-        response = requests.post(url, json=data, headers=self.headers)
+        response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
         
         return response.json()
 
-    def upload_file(self, app_id, file_path, version_number, release_notes, silent, wait, max_wait_time_sec=60):
+    def upload_file(self, app_id, file_path, version_number, release_notes, silent, wait, max_wait_time_sec=60, app_build_type="standalone"):
         file = MultipartFileS3(file_path)
 
-        response = self._initiate_upload(app_id, file.file_name)
+        response = self._initiate_upload(app_id, file.file_name, app_build_type)
 
         upload_id = response['uploadId']
         key = response['key']
         version_id = response['versionId']
+        app_bundle_id = response.get('appBundleId')  # Capture bundle ID if created
 
         part_numbers = list(range(1, file.get_part_numbers() + 1))
 
@@ -93,7 +94,7 @@ class AppsService(ApiService):
                     presigned_url = item['presignedUrl']
 
                     part = file.get_part(part_number)
-                    response = requests.put(presigned_url, data=part)
+                    response = self.client.put(presigned_url, data=part)
                     response.raise_for_status()
 
                     uploaded_parts += [{'partNumber': part_number, 'eTag': response.headers['ETag']}]
@@ -129,12 +130,16 @@ class AppsService(ApiService):
                     if wait_indefinitely:
                         max_wait_time_sec += 1
 
+            # Include appBundleId in response if it was created
+            if app_bundle_id:
+                complete_response['appBundleId'] = app_bundle_id
+
             return complete_response
         
     def get_all_apps(self):
         url = f'{self.base_url}/apps?per_page=20'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         json = response.json()
@@ -143,7 +148,7 @@ class AppsService(ApiService):
 
         if json['links']:
             while json['links']['next']:
-                response = requests.get(json['links']['next'], headers=self.headers)
+                response = self.client.get(json['links']['next'], headers=self.headers)
                 response.raise_for_status()
                 json = response.json()
 
@@ -154,7 +159,7 @@ class AppsService(ApiService):
     def get_app_detail(self, app_id):
         url = f'{self.base_url}/apps/{app_id}'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
@@ -162,7 +167,7 @@ class AppsService(ApiService):
     def get_all_versions_for_app(self, app_id):
         url = f'{self.base_url}/apps/{app_id}/versions'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         json = response.json()
@@ -171,18 +176,51 @@ class AppsService(ApiService):
 
         if json['links']:
             while json['links']['next']:
-                response = requests.get(json['links']['next'], headers=self.headers)
+                response = self.client.get(json['links']['next'], headers=self.headers)
                 response.raise_for_status()
                 json = response.json()
 
                 data += json['data']
 
         return data
-    
+
+    def get_versions_by_sha256(self, app_id, sha256_hashes):
+        """Query app versions by SHA-256 hashes, return only AVAILABLE versions"""
+        if not sha256_hashes:
+            return []
+
+        # Build query string with sha256[] array parameters
+        query_params = '&'.join([f'sha256[]={hash}' for hash in sha256_hashes])
+        url = f'{self.base_url}/apps/{app_id}/versions?{query_params}'
+
+        response = self.client.get(url, headers=self.headers)
+        response.raise_for_status()
+
+        json_data = response.json()
+        data = json_data.get('data', [])
+
+        # Filter for AVAILABLE status only
+        return [v for v in data if v.get('status') == 'AVAILABLE']
+
+    def get_files_by_sha512(self, app_id, sha512_hashes):
+        """Query app files by SHA-512 hashes"""
+        if not sha512_hashes:
+            return []
+
+        # Build query string with sha512[] array parameters
+        query_params = '&'.join([f'sha512[]={hash}' for hash in sha512_hashes])
+        url = f'{self.base_url}/apps/{app_id}/files?{query_params}'
+
+        response = self.client.get(url, headers=self.headers)
+        response.raise_for_status()
+
+        json_data = response.json()
+        return json_data.get('data', [])
+
     def get_all_release_channels_for_app(self, app_id):
         url = f'{self.base_url}/apps/{app_id}/release-channels'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         json = response.json()
@@ -191,7 +229,7 @@ class AppsService(ApiService):
 
         if json['links']:
             while json['links']['next']:
-                response = requests.get(json['links']['next'], headers=self.headers)
+                response = self.client.get(json['links']['next'], headers=self.headers)
                 response.raise_for_status()
                 json = response.json()
 
@@ -202,7 +240,7 @@ class AppsService(ApiService):
     def get_release_channel_detail(self, app_id, release_channel_id):
         url = f'{self.base_url}/apps/{app_id}/release-channels/{release_channel_id}'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
@@ -212,7 +250,7 @@ class AppsService(ApiService):
 
         data = {'versionId': version_id}
 
-        response = requests.put(url, json=data, headers=self.headers)
+        response = self.client.put(url, json=data, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
@@ -221,7 +259,7 @@ class AppsService(ApiService):
         url = f'{self.base_url}/apps/{app_id}/release-channels/{release_channel_id}/share'
         data = {'organizationSlug': organization_slug}
 
-        response = requests.post(url, json=data, headers=self.headers)
+        response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
@@ -230,7 +268,7 @@ class AppsService(ApiService):
         url = f'{self.base_url}/apps/{app_id}/release-channels/{release_channel_id}/share'
         data = {'organizationSlug': organization_slug}
 
-        response = requests.delete(url, json=data, headers=self.headers)
+        response = self.client.delete(url, json=data, headers=self.headers)
         response.raise_for_status()
 
         return response.json()

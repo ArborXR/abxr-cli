@@ -4,14 +4,9 @@
 # Released under the MIT License. See LICENSE file for details.
 #
 
-import requests
-import yaml
-import json
-
 from enum import Enum
 
 from abxr.api_service import ApiService
-from abxr.formats import DataOutputFormats
 from abxr.output import print_formatted
 
 class Commands(Enum):
@@ -24,7 +19,7 @@ class OrgService(ApiService):
     def get_org_info(self):
         url = f'{self.base_url}/current-organization'
 
-        response = requests.get(url, headers=self.headers)
+        response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
