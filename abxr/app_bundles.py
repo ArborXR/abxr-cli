@@ -12,7 +12,8 @@ from pathlib import Path
 
 from enum import Enum
 
-from abxr.api_service import ApiService, SYSTEM_FILES_TO_EXCLUDE, SYSTEM_DIRS_TO_EXCLUDE
+from abxr.api_service import ApiService
+from abxr.constants import SYSTEM_FILES_TO_EXCLUDE, SYSTEM_DIRS_TO_EXCLUDE
 from abxr.multipart import MultipartFileS3
 from abxr.formats import DataOutputFormats
 from abxr.output import print_formatted
