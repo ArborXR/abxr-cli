@@ -376,9 +376,10 @@ def main():
     app_bundles_upload_parser.add_argument("app_id", help="ID of the app", type=str)
     app_bundles_upload_parser.add_argument("apk_path", help="Path to APK file", type=str)
     app_bundles_upload_parser.add_argument("bundle_folder", help="Path to folder containing bundle files", type=str)
-    app_bundles_upload_parser.add_argument("--version-number", help="Version number (APK can override this value)", type=str)
+    app_bundles_upload_parser.add_argument("--version_number", help="Version number (APK can override this value)", type=str)
     app_bundles_upload_parser.add_argument("-n", "--notes", help="Release notes for the bundle", type=str)
-    app_bundles_upload_parser.add_argument("--device-path", help="Optional device path relative to /sdcard for bundle files", type=str)
+    app_bundles_upload_parser.add_argument("--device_path", help="Optional device path relative to /sdcard for bundle files", type=str)
+    app_bundles_upload_parser.add_argument("-s", "--silent", help="Suppress progress bars and other output", action="store_true")
 
     # List app bundles for an app
     app_bundles_list_parser = app_bundles_subparsers.add_parser(AppBundlesCommands.LIST.value, help="List app bundles for an app")
@@ -394,7 +395,8 @@ def main():
     app_bundles_resume_parser.add_argument("bundle_id", help="ID of the bundle to resume", type=str)
     app_bundles_resume_parser.add_argument("apk_path", help="Path to APK file", type=str)
     app_bundles_resume_parser.add_argument("folder_path", help="Path to folder with bundle files", type=str)
-    app_bundles_resume_parser.add_argument("--device-path", help="Optional device path relative to /sdcard for bundle files (must match original upload)", type=str)
+    app_bundles_resume_parser.add_argument("--device_path", help="Optional device path relative to /sdcard for bundle files (must match original upload)", type=str)
+    app_bundles_resume_parser.add_argument("-s", "--silent", help="Suppress progress bars and other output", action="store_true")
 
     # Update an app bundle's label
     app_bundles_update_label_parser = app_bundles_subparsers.add_parser(AppBundlesCommands.UPDATE_LABEL.value, help="Update an app bundle's label")
@@ -402,6 +404,14 @@ def main():
     label_group = app_bundles_update_label_parser.add_mutually_exclusive_group(required=True)
     label_group.add_argument("--label", help="New label for the bundle (max 60 characters)", type=str)
     label_group.add_argument("--clear", help="Remove the label from the bundle", action="store_true")
+
+    # Create app bundle from existing build
+    app_bundles_create_from_build_parser = app_bundles_subparsers.add_parser(AppBundlesCommands.CREATE_FROM_BUILD.value, help="Create an app bundle from an existing build ID and folder of files")
+    app_bundles_create_from_build_parser.add_argument("build_id", help="ID of the existing app build/version", type=str)
+    app_bundles_create_from_build_parser.add_argument("bundle_folder", help="Path to folder containing bundle files", type=str)
+    app_bundles_create_from_build_parser.add_argument("app_id", help="ID of the app (needed for file deduplication)", type=str)
+    app_bundles_create_from_build_parser.add_argument("--device_path", help="Optional device path relative to /sdcard for bundle files", type=str)
+    app_bundles_create_from_build_parser.add_argument("-s", "--silent", help="Suppress progress bars and other output", action="store_true")
 
     args = parser.parse_args()
 

@@ -13,6 +13,7 @@ from pathlib import Path
 from enum import Enum
 
 from abxr.api_service import ApiService
+from abxr.constants import SYSTEM_FILES_TO_EXCLUDE, SYSTEM_DIRS_TO_EXCLUDE
 from abxr.multipart import MultipartFileS3
 from abxr.formats import DataOutputFormats
 from abxr.output import print_formatted
@@ -27,6 +28,7 @@ class Commands(Enum):
     FINALIZE = "finalize"     # Finalize an app bundle
     RESUME = "resume"         # Resume a failed bundle upload
     UPDATE_LABEL = "update_label"  # Update a bundle's label
+    CREATE_FROM_BUILD = "create_from_build"  # Create bundle from existing build
 
 class AppBundlesService(ApiService):
     MAX_PARTS_PER_REQUEST = 4
@@ -267,6 +269,42 @@ class AppBundlesService(ApiService):
 
         return bundle_response
 
+    def _query_existing_files_by_hash(self, app_id, file_hashes, silent):
+        """Query for existing files by SHA512 hash with hash-based deduplication
+
+        Args:
+            app_id: ID of the app
+            file_hashes: Dict of {Path: sha512_hash} for files to check
+            silent: Suppress output
+
+        Returns:
+            Dict of {Path: file_data} for files that already exist in the app
+        """
+        existing_files_map = {}
+        if not file_hashes:
+            return existing_files_map
+
+        apps_service = AppsService(self.base_url, self.headers['Authorization'].replace('Bearer ', ''))
+
+        if not silent:
+            print(f"Checking for existing files...")
+
+        # Query in batches of 10
+        hash_list = list(file_hashes.values())
+        for i in range(0, len(hash_list), 10):
+            batch_hashes = hash_list[i:i + 10]
+            existing_files_batch = apps_service.get_files_by_sha512(app_id, batch_hashes)
+
+            for file_data in existing_files_batch:
+                file_hash = file_data.get('sha512')
+                file_name = file_data.get('name')
+                # Match by hash AND filename for safety
+                for file_path, path_hash in file_hashes.items():
+                    if path_hash == file_hash and file_path.name == file_name:
+                        existing_files_map[file_path] = file_data
+
+        return existing_files_map
+
     def _upload_bundle_files(self, files_to_upload, folder, app_bundle_id, silent, base_path=None):
         """Upload bundle files to an app bundle
 
@@ -314,11 +352,6 @@ class AppBundlesService(ApiService):
                 - build_hash: SHA-256 hash of build
                 - file_hashes_dict: {Path: sha512_hash} for all bundle files
         """
-        # Validate folder
-        folder = Path(folder_path)
-        if not folder.is_dir():
-            raise ValueError(f"Folder path does not exist: {folder_path}")
-
         # Validate APK path
         build_file = Path(apk_path)
         if not build_file.exists() or not build_file.is_file():
@@ -340,11 +373,38 @@ class AppBundlesService(ApiService):
             print(f"Calculating build hash...")
         build_hash = self.calculate_sha256(str(build_file))
 
-        # Find all bundle files (excluding system files)
+        # Scan folder for bundle files (reuse common logic, exclude the APK)
+        folder, file_hashes = self._scan_folder_files_only(folder_path, silent, exclude_file=build_file)
+
+        return folder, build_file, build_hash, file_hashes
+
+    def _scan_folder_files_only(self, folder_path, silent=False, exclude_file=None):
+        """Scan folder for bundle files only (no APK required), calculate hashes
+
+        Args:
+            folder_path: Path to folder containing bundle files
+            silent: Suppress output
+            exclude_file: Optional file path to exclude (e.g., APK file)
+
+        Returns:
+            tuple: (folder, file_hashes_dict)
+                - folder: Path object
+                - file_hashes_dict: {Path: sha512_hash} for all bundle files
+        """
+        # Validate folder
+        folder = Path(folder_path)
+        if not folder.is_dir():
+            raise ValueError(f"Folder path does not exist: {folder_path}")
+
+        # Convert exclude_file to Path if provided
+        exclude_path = Path(exclude_file) if exclude_file else None
+
+        # Find all bundle files (excluding system files and optional exclude_file)
         all_files = [f for f in folder.rglob('*')
                      if f.is_file()
-                     and f != build_file
-                     and f.name not in ['.DS_Store', 'Thumbs.db']]
+                     and f.name not in SYSTEM_FILES_TO_EXCLUDE
+                     and not any(sys_dir in str(f) for sys_dir in SYSTEM_DIRS_TO_EXCLUDE)
+                     and (exclude_path is None or f != exclude_path)]
 
         # Calculate file hashes
         file_hashes = {}
@@ -353,7 +413,7 @@ class AppBundlesService(ApiService):
         for file_path in all_files:
             file_hashes[file_path] = self.calculate_sha512(str(file_path))
 
-        return folder, build_file, build_hash, file_hashes
+        return folder, file_hashes
 
     def create_app_bundle_from_existing(self, build_id, files=None):
         """Create an app bundle from existing build and files
@@ -403,22 +463,8 @@ class AppBundlesService(ApiService):
         existing_builds = apps_service.get_versions_by_sha256(app_id, [build_hash])
         existing_build = existing_builds[0] if existing_builds else None
 
-        # Query for existing files (batch up to 10 at a time)
-        existing_files_map = {}
-        if file_hashes:
-            if not silent:
-                print(f"Checking for existing files...")
-            hash_list = list(file_hashes.values())
-            for i in range(0, len(hash_list), 10):
-                batch_hashes = hash_list[i:i + 10]
-                existing_files_batch = apps_service.get_files_by_sha512(app_id, batch_hashes)
-                for file_data in existing_files_batch:
-                    file_hash = file_data.get('sha512')
-                    file_name = file_data.get('name')
-                    # Match by hash AND filename for safety
-                    for file_path, path_hash in file_hashes.items():
-                        if path_hash == file_hash and file_path.name == file_name:
-                            existing_files_map[file_path] = file_data
+        # Query for existing files
+        existing_files_map = self._query_existing_files_by_hash(app_id, file_hashes, silent)
 
         # Branch based on whether build exists
         if existing_build:
@@ -588,6 +634,72 @@ class AppBundlesService(ApiService):
         # Finalize and return bundle info
         return self._finalize_and_return_bundle_info(bundle_id, silent)
 
+    def create_app_bundle_from_build(self, build_id, folder_path, app_id, silent, device_path=None):
+        """Create an app bundle from an existing build ID and folder of files
+
+        Args:
+            build_id: ID of existing app build/version
+            folder_path: Path to folder containing bundle files
+            app_id: ID of the app (needed for file deduplication queries)
+            silent: Suppress output
+            device_path: Optional base path on device relative to /sdcard
+
+        Returns:
+            AppBundle object with full details after finalization
+        """
+        # Scan folder for files only (no APK needed)
+        folder, file_hashes = self._scan_folder_files_only(folder_path, silent)
+        all_files = list(file_hashes.keys())
+
+        # Query for existing files
+        existing_files_map = self._query_existing_files_by_hash(app_id, file_hashes, silent)
+
+        # Prepare files array for bundle creation
+        bundle_files = self._prepare_existing_files_for_bundle(existing_files_map, folder, device_path)
+
+        if not silent:
+            print(f"Creating bundle from existing build ID {build_id}...")
+
+        bundle_response = self.create_app_bundle_from_existing(
+            build_id,
+            bundle_files if bundle_files else None
+        )
+
+        app_bundle_id = bundle_response.get('id')
+        if not app_bundle_id:
+            raise ValueError("No bundle ID returned from bundle creation.")
+
+        if not silent:
+            print(f"Bundle created with ID: {app_bundle_id}")
+
+        try:
+            # Add existing files that were matched
+            if existing_files_map and not silent:
+                file_names = [file_path.name for file_path in existing_files_map.keys()]
+                total_count = len(file_names)
+
+                if total_count <= 10:
+                    files_list = ", ".join(file_names)
+                    print(f"Reusing {total_count} existing file(s): {files_list}")
+                else:
+                    first_10 = ", ".join(file_names[:10])
+                    remaining = total_count - 10
+                    print(f"Reusing {total_count} existing file(s): {first_10} +{remaining} other files")
+
+            # Upload missing files
+            files_to_upload = [f for f in all_files if f not in existing_files_map]
+            self._upload_bundle_files(files_to_upload, folder, app_bundle_id, silent, device_path)
+
+        except Exception as e:
+            print(f"\nError during bundle creation: {e}")
+            print(f"\nBundle ID: {app_bundle_id}")
+            print(f"The bundle is in 'pending' state and can be finalized using:")
+            print(f"  abxr-cli app_bundles finalize {app_bundle_id}")
+            raise
+
+        # Finalize and return bundle info
+        return self._finalize_and_return_bundle_info(app_bundle_id, silent)
+
 
 class CommandHandler:
     def __init__(self, args):
@@ -645,4 +757,14 @@ class CommandHandler:
             # Determine label value: None if --clear flag is used, otherwise use --label value
             label = None if self.args.clear else self.args.label
             result = self.service.update_app_bundle_label(self.args.app_bundle_id, label)
+            print_formatted(self.args.format, result)
+
+        elif self.args.app_bundles_command == Commands.CREATE_FROM_BUILD.value:
+            result = self.service.create_app_bundle_from_build(
+                self.args.build_id,
+                self.args.bundle_folder,
+                self.args.app_id,
+                self.args.silent,
+                device_path=getattr(self.args, 'device_path', None)
+            )
             print_formatted(self.args.format, result)

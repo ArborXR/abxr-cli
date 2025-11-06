@@ -211,6 +211,18 @@ The CLI automatically detects and reuses existing builds and files based on thei
     * --device-path: Device path relative to /sdcard (must match original upload if used).
 * Description: Resume a failed or interrupted bundle upload. Validates that the APK, folder structure, and device path match the original bundle, then uploads any missing files and finalizes the bundle.
 
+##### create_from_build
+* Usage:
+`abxr-cli app_bundles create_from_build <build_id> <bundle_folder> <app_id> [--device-path PATH] [-s]`
+* Positional Arguments:
+    * <build_id>: The unique identifier of an existing app build/version.
+    * <bundle_folder>: Path to folder containing bundle files.
+    * <app_id>: The unique identifier of the app (needed for file deduplication).
+* Optional Arguments:
+    * --device-path: Optional device path relative to /sdcard for bundle files.
+    * -s, --silent: Suppress progress bars and other output.
+* Description: Create an app bundle using an existing build without re-uploading the APK. This is useful when you want to create multiple bundles with different file sets from the same build, or when you already have a build and just need to add files to it. Automatically reuses existing files based on hash matching.
+
 ##### update_label
 * Usage:
 `abxr-cli app_bundles update_label <app_bundle_id> {--label LABEL | --clear}`
@@ -345,6 +357,26 @@ If an upload fails or is interrupted, you can resume it:
 If the original upload used a custom device path, you must provide it when resuming:
 
 `abxr-cli app_bundles resume 789e1234-e89b-12d3-a456-426614174000 /path/to/app.apk /path/to/bundle-folder --device-path myapp/config`
+
+### Creating a bundle from an existing build
+
+If you already have an uploaded build and want to create a bundle with files without re-uploading the APK:
+
+`abxr-cli app_bundles create_from_build abc12345-e89b-12d3-a456-426614174000 /path/to/bundle-folder 123e4567-e89b-12d3-a456-426614174000`
+
+With a custom device path:
+
+`abxr-cli app_bundles create_from_build abc12345-e89b-12d3-a456-426614174000 /path/to/bundle-folder 123e4567-e89b-12d3-a456-426614174000 --device-path myapp/data`
+
+Create multiple bundles from the same build with different file sets:
+
+```bash
+# First bundle with config files
+abxr-cli app_bundles create_from_build abc12345-e89b-12d3-a456-426614174000 /path/to/config-files 123e4567-e89b-12d3-a456-426614174000
+
+# Second bundle with media files
+abxr-cli app_bundles create_from_build abc12345-e89b-12d3-a456-426614174000 /path/to/media-files 123e4567-e89b-12d3-a456-426614174000
+```
 
 ### Updating an app bundle's label
 
