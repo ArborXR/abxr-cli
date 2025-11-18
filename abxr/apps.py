@@ -36,12 +36,18 @@ class AppsService(ApiService):
     def __init__(self, base_url, token):
         super().__init__(base_url, token)
 
-    def _initiate_upload(self, app_id, file_name, app_build_type="standalone"):
+    def _initiate_upload(self, app_id, file_name, app_build_type="standalone", release_channel_id=None, new_release_channel_title=None):
         url = f'{self.base_url}/apps/{app_id}/versions'
         data = {'filename': file_name}
 
         if app_build_type:
             data['appBuildType'] = app_build_type
+
+        if release_channel_id:
+            data['releaseChannelId'] = release_channel_id
+
+        if new_release_channel_title:
+            data['newReleaseChannelTitle'] = new_release_channel_title
 
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
@@ -74,10 +80,10 @@ class AppsService(ApiService):
         
         return response.json()
 
-    def upload_file(self, app_id, file_path, version_number, release_notes, silent, wait, max_wait_time_sec=60, app_build_type="standalone"):
+    def upload_file(self, app_id, file_path, version_number, release_notes, silent, wait, max_wait_time_sec=60, app_build_type="standalone", release_channel_id=None, new_release_channel_title=None):
         file = MultipartFileS3(file_path)
 
-        response = self._initiate_upload(app_id, file.file_name, app_build_type)
+        response = self._initiate_upload(app_id, file.file_name, app_build_type, release_channel_id, new_release_channel_title)
 
         upload_id = response['uploadId']
         key = response['key']
@@ -332,6 +338,8 @@ def _handle_zip_upload(args, apps_service):
         if not other_files:
             if not args.silent:
                 print(f"ZIP contains only APK, using standard upload...")
+            release_channel_id = getattr(args, 'release_channel_id', None)
+            new_release_channel_title = getattr(args, 'new_release_channel_title', None)
             result = apps_service.upload_file(
                 args.app_id,
                 apk_path,
@@ -339,7 +347,9 @@ def _handle_zip_upload(args, apps_service):
                 args.notes,
                 args.silent,
                 args.wait,
-                args.wait_time
+                args.wait_time,
+                release_channel_id=release_channel_id,
+                new_release_channel_title=new_release_channel_title
             )
             return result
 
@@ -374,6 +384,8 @@ def _handle_zip_upload(args, apps_service):
         bundle_service = AppBundlesService(args.url, args.token)
 
         # Upload as bundle
+        release_channel_id = getattr(args, 'release_channel_id', None)
+        new_release_channel_title = getattr(args, 'new_release_channel_title', None)
         result = bundle_service.upload_app_bundle(
             args.app_id,
             temp_dir,
@@ -381,7 +393,9 @@ def _handle_zip_upload(args, apps_service):
             args.notes,
             args.silent,
             apk_path=apk_path,
-            device_path=None
+            device_path=None,
+            release_channel_id=release_channel_id,
+            new_release_channel_title=new_release_channel_title
         )
 
         return result
@@ -425,7 +439,19 @@ class CommandHandler:
             if self.args.filename.lower().endswith('.zip'):
                 app_version = _handle_zip_upload(self.args, self.service)
             else:
-                app_version = self.service.upload_file(self.args.app_id, self.args.filename, self.args.version_number, self.args.notes, self.args.silent, self.args.wait, self.args.wait_time)
+                release_channel_id = getattr(self.args, 'release_channel_id', None)
+                new_release_channel_title = getattr(self.args, 'new_release_channel_title', None)
+                app_version = self.service.upload_file(
+                    self.args.app_id,
+                    self.args.filename,
+                    self.args.version_number,
+                    self.args.notes,
+                    self.args.silent,
+                    self.args.wait,
+                    self.args.wait_time,
+                    release_channel_id=release_channel_id,
+                    new_release_channel_title=new_release_channel_title
+                )
             print_formatted(self.args.format, app_version)
 
         elif self.args.apps_command == Commands.SHARE.value:
