@@ -82,6 +82,11 @@ def main():
     create_version_parser.add_argument("-w", "--wait", help="Wait for the upload to complete", action="store_true")
     create_version_parser.add_argument("--wait_time", help="Maximum wait time in seconds for the upload to complete processing", type=int, default=60)
 
+    # Release channel options (mutually exclusive)
+    release_channel_group = create_version_parser.add_mutually_exclusive_group()
+    release_channel_group.add_argument("--release-channel-id", help="ID of existing release channel to upload to", type=str, dest="release_channel_id")
+    release_channel_group.add_argument("--new-release-channel-title", help="Title for a new release channel to create", type=str, dest="new_release_channel_title")
+
     # Sharing Apps
     share_parser = apps_subparsers.add_parser(AppCommands.SHARE.value, help="Share an app")
     share_parser.add_argument("app_id", help="ID of the app", type=str)
@@ -381,6 +386,11 @@ def main():
     app_bundles_upload_parser.add_argument("--device_path", help="Optional device path relative to /sdcard for bundle files", type=str)
     app_bundles_upload_parser.add_argument("-s", "--silent", help="Suppress progress bars and other output", action="store_true")
 
+    # Release channel options (mutually exclusive)
+    bundle_release_channel_group = app_bundles_upload_parser.add_mutually_exclusive_group()
+    bundle_release_channel_group.add_argument("--release-channel-id", help="ID of existing release channel to upload to", type=str, dest="release_channel_id")
+    bundle_release_channel_group.add_argument("--new-release-channel-title", help="Title for a new release channel to create", type=str, dest="new_release_channel_title")
+
     # List app bundles for an app
     app_bundles_list_parser = app_bundles_subparsers.add_parser(AppBundlesCommands.LIST.value, help="List app bundles for an app")
     app_bundles_list_parser.add_argument("app_id", help="ID of the app", type=str)
@@ -412,6 +422,11 @@ def main():
     app_bundles_create_from_build_parser.add_argument("app_id", help="ID of the app (needed for file deduplication)", type=str)
     app_bundles_create_from_build_parser.add_argument("--device_path", help="Optional device path relative to /sdcard for bundle files", type=str)
     app_bundles_create_from_build_parser.add_argument("-s", "--silent", help="Suppress progress bars and other output", action="store_true")
+
+    # Release channel options (mutually exclusive)
+    create_from_build_release_channel_group = app_bundles_create_from_build_parser.add_mutually_exclusive_group()
+    create_from_build_release_channel_group.add_argument("--release-channel-id", help="ID of existing release channel to associate with bundle", type=str, dest="release_channel_id")
+    create_from_build_release_channel_group.add_argument("--new-release-channel-title", help="Title for a new release channel to create", type=str, dest="new_release_channel_title")
 
     args = parser.parse_args()
 

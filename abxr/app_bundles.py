@@ -415,12 +415,14 @@ class AppBundlesService(ApiService):
 
         return folder, file_hashes
 
-    def create_app_bundle_from_existing(self, build_id, files=None):
+    def create_app_bundle_from_existing(self, build_id, files=None, release_channel_id=None, new_release_channel_title=None):
         """Create an app bundle from existing build and files
 
         Args:
             build_id: ID of existing app build/version
             files: Optional list of dicts with 'fileId' and optional 'path'
+            release_channel_id: Optional ID of existing release channel
+            new_release_channel_title: Optional title for new release channel
 
         Returns:
             Bundle creation response with bundle ID
@@ -434,12 +436,18 @@ class AppBundlesService(ApiService):
         if files:
             data['files'] = files
 
+        if release_channel_id:
+            data['releaseChannelId'] = release_channel_id
+
+        if new_release_channel_title:
+            data['newReleaseChannelTitle'] = new_release_channel_title
+
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
 
-    def upload_app_bundle(self, app_id, folder_path, version_number, release_notes, silent, apk_path, device_path=None):
+    def upload_app_bundle(self, app_id, folder_path, version_number, release_notes, silent, apk_path, device_path=None, release_channel_id=None, new_release_channel_title=None):
         """Upload APK and all bundle files from folder with hash-based deduplication, then finalize bundle
 
         Args:
@@ -450,6 +458,8 @@ class AppBundlesService(ApiService):
             silent: Suppress output
             apk_path: Path to APK file
             device_path: Optional base path on device relative to /sdcard
+            release_channel_id: Optional ID of existing release channel to upload to
+            new_release_channel_title: Optional title for a new release channel to create
         """
         # Scan folder for build and files
         folder, build_file, build_hash, file_hashes = self._scan_folder(folder_path, apk_path, silent)
@@ -481,7 +491,9 @@ class AppBundlesService(ApiService):
                 print(f"Creating bundle with existing build...")
             bundle_response = self.create_app_bundle_from_existing(
                 build_id,
-                bundle_files if bundle_files else None
+                bundle_files if bundle_files else None,
+                release_channel_id=release_channel_id,
+                new_release_channel_title=new_release_channel_title
             )
 
             app_bundle_id = bundle_response.get('id')
@@ -518,7 +530,9 @@ class AppBundlesService(ApiService):
                 release_notes,
                 silent,
                 wait=False,
-                app_build_type="app-bundle"
+                app_build_type="app-bundle",
+                release_channel_id=release_channel_id,
+                new_release_channel_title=new_release_channel_title
             )
 
             app_bundle_id = upload_response.get('appBundleId')
@@ -634,7 +648,7 @@ class AppBundlesService(ApiService):
         # Finalize and return bundle info
         return self._finalize_and_return_bundle_info(bundle_id, silent)
 
-    def create_app_bundle_from_build(self, build_id, folder_path, app_id, silent, device_path=None):
+    def create_app_bundle_from_build(self, build_id, folder_path, app_id, silent, device_path=None, release_channel_id=None, new_release_channel_title=None):
         """Create an app bundle from an existing build ID and folder of files
 
         Args:
@@ -643,6 +657,8 @@ class AppBundlesService(ApiService):
             app_id: ID of the app (needed for file deduplication queries)
             silent: Suppress output
             device_path: Optional base path on device relative to /sdcard
+            release_channel_id: Optional ID of existing release channel
+            new_release_channel_title: Optional title for new release channel
 
         Returns:
             AppBundle object with full details after finalization
@@ -662,7 +678,9 @@ class AppBundlesService(ApiService):
 
         bundle_response = self.create_app_bundle_from_existing(
             build_id,
-            bundle_files if bundle_files else None
+            bundle_files if bundle_files else None,
+            release_channel_id=release_channel_id,
+            new_release_channel_title=new_release_channel_title
         )
 
         app_bundle_id = bundle_response.get('id')
@@ -715,7 +733,9 @@ class CommandHandler:
                 self.args.notes,
                 self.args.silent,
                 apk_path=self.args.apk_path,
-                device_path=getattr(self.args, 'device_path', None)
+                device_path=getattr(self.args, 'device_path', None),
+                release_channel_id=getattr(self.args, 'release_channel_id', None),
+                new_release_channel_title=getattr(self.args, 'new_release_channel_title', None)
             )
             print_formatted(self.args.format, result)
 
@@ -765,6 +785,8 @@ class CommandHandler:
                 self.args.bundle_folder,
                 self.args.app_id,
                 self.args.silent,
-                device_path=getattr(self.args, 'device_path', None)
+                device_path=getattr(self.args, 'device_path', None),
+                release_channel_id=getattr(self.args, 'release_channel_id', None),
+                new_release_channel_title=getattr(self.args, 'new_release_channel_title', None)
             )
             print_formatted(self.args.format, result)
