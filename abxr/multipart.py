@@ -12,7 +12,7 @@ class MultipartFileS3:
 
     def __init__(self, file_path):
         self.file_path = file_path
-        self.file_name = file_path.split('/')[-1]
+        self.file_name = os.path.basename(file_path)
         self.size = self.get_size()
         self.part_size = self.get_part_size()
         self.part_numbers = self.get_part_numbers()
