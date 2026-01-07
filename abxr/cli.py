@@ -4,6 +4,9 @@
 # Released under the MIT License. See LICENSE file for details.
 #
 
+import warnings
+warnings.filterwarnings("ignore", message="urllib3 v2 only supports OpenSSL")
+
 import argparse
 import os
 from requests import HTTPError
@@ -257,6 +260,7 @@ def main():
     upload_system_app_parser.add_argument("app_type", help="Type of the system app (e.g., 'client', 'home')", type=str)
     upload_system_app_parser.add_argument("filename", help="Local path of the APK to upload", type=str)
     upload_system_app_parser.add_argument("--version_number", help="Version Number (APK can override this value)", type=str)
+    upload_system_app_parser.add_argument("--version_code", help="Version Code (required for OS app type)", type=int)
     upload_system_app_parser.add_argument("-n", "--notes", help="Release Notes", type=str)
     upload_system_app_parser.add_argument("--app_compatibility_name", help="Name of the app compatibility (e.g: armeabi-v7a)", type=str, required=True)
     upload_system_app_parser.add_argument("--release_channel_name", help="Name of the release channel to upload to. Omitting will default to Latest", type=str)

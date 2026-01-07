@@ -31,21 +31,27 @@ class SystemAppsService(ApiService):
 
         super().__init__(base_url, token)
 
-    def _initiate_upload(self, app_type, file_name, release_channel_id, app_compatibility_id):
+    def _initiate_upload(self, app_type, file_name, release_channel_id, app_compatibility_id, version_name=None, version_code=None):
         url = f'{self.base_url}/apps/{app_type}/versions'
-        
+
         data = {'filename': file_name,
                 'appCompatibilityId': app_compatibility_id
                 }
-        
+
         if release_channel_id:
             data['releaseChannelId'] = release_channel_id
         else:
             raise ValueError("release_channel_id must be provided.")
 
+        if version_name:
+            data['versionName'] = version_name
+
+        if version_code:
+            data['versionCode'] = version_code
+
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
-        
+
         return response.json()
 
     def _presigned_url(self, app_type, version_id, upload_id, key, part_numbers):
@@ -74,10 +80,10 @@ class SystemAppsService(ApiService):
         
         return response.json()
 
-    def upload_file(self, app_type, file_path, release_channel_name, app_compatibility_name, version_number, release_notes, silent):
+    def upload_file(self, app_type, file_path, release_channel_name, app_compatibility_name, version_number, version_code, release_notes, silent):
         if release_channel_name is None:
             release_channel_name = 'Latest'
-        
+
         app_compatibilities = self.get_all_app_compatibilities_for_app(app_type)
         app_compatibility_id = next((item['id'] for item in app_compatibilities if item['name'] == app_compatibility_name), None)
         if not app_compatibility_id:
@@ -86,7 +92,7 @@ class SystemAppsService(ApiService):
         # list all the release channels for the app type (filter by "Latest" or whatever passed in value)
         release_channel_id = None
         release_channels = self.get_all_release_channels_for_app(app_type)
-        
+
         for release_channel in release_channels:
             if release_channel['name'] == release_channel_name:
                 release_channel_detail = self.get_release_channel_detail(app_type, release_channel['id'])
@@ -95,11 +101,11 @@ class SystemAppsService(ApiService):
 
         if not release_channel_id:
             raise ValueError(f"Release channel not found for '{release_channel_name}' and app compatibility '{app_compatibility_name}'")
-            
-        
+
+
         file = MultipartFileS3(file_path)
 
-        response = self._initiate_upload(app_type, file.file_name, release_channel_id, app_compatibility_id)
+        response = self._initiate_upload(app_type, file.file_name, release_channel_id, app_compatibility_id, version_number, version_code)
 
         upload_id = response['uploadId']
         key = response['key']
@@ -232,6 +238,6 @@ class CommandHandler:
             print_formatted(self.args.format, app_compatibility_detail)
 
         elif self.args.system_apps_command == Commands.UPLOAD.value:
-            app_version = self.service.upload_file(self.args.app_type, self.args.filename, self.args.release_channel_name, self.args.app_compatibility_name, self.args.version_number, self.args.notes, self.args.silent)
+            app_version = self.service.upload_file(self.args.app_type, self.args.filename, self.args.release_channel_name, self.args.app_compatibility_name, self.args.version_number, self.args.version_code, self.args.notes, self.args.silent)
             print_formatted(self.args.format, app_version)
 
