@@ -3,5 +3,5 @@
 # Released under the MIT License. See LICENSE file for details.
 #
 
-import pkg_resources
-version = pkg_resources.require("abxrcli")[0].version
+from importlib.metadata import version as _get_version
+version = _get_version("abxrcli")
