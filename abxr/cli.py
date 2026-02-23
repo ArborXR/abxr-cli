@@ -25,6 +25,7 @@ from abxr.groups import Commands as GroupsCommands, CommandHandler as GroupsComm
 from abxr.tags import Commands as TagsCommands, CommandHandler as TagsCommandHandler
 from abxr.users import Commands as UsersCommands, CommandHandler as UsersCommandHandler
 from abxr.videos import Commands as VideosCommands, CommandHandler as VideosCommandHandler
+from abxr.token import Commands as TokenCommands, CommandHandler as TokenCommandHandler
 
 ABXR_API_URL = os.environ.get("ABXR_API_URL", "https://api.xrdm.app/api/v2")
 ABXR_API_TOKEN = os.environ.get("ABXR_API_TOKEN") or os.environ.get("ARBORXR_ACCESS_TOKEN")
@@ -45,6 +46,12 @@ def main():
     org_subparsers = org_parser.add_subparsers(dest="org_command", help="Organization command help")
 
     org_info_parser = org_subparsers.add_parser(OrgCommands.INFO.value, help="Get organization info connected to API token")
+
+    # Token
+    token_parser = subparsers.add_parser("token", help="Token command")
+    token_subparsers = token_parser.add_subparsers(dest="token_command", help="Token command help")
+
+    token_info_parser = token_subparsers.add_parser(TokenCommands.INFO.value, help="Get token info (API version, organization, etc.)")
 
     # Apps
     apps_parser = subparsers.add_parser("apps", help="Apps command")
@@ -485,6 +492,10 @@ def main():
 
         elif args.command == "app_bundles":
             handler = AppBundlesCommandHandler(args)
+            handler.run()
+
+        elif args.command == "token":
+            handler = TokenCommandHandler(args)
             handler.run()
 
     except HTTPError as e:
