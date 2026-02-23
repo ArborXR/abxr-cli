@@ -54,77 +54,50 @@ class AppBundlesService(ApiService):
 
     def get_all_app_bundles_for_app(self, app_id, status=None):
         """Get all app bundles for a specific app"""
-        url = f'{self.base_url}/apps/{app_id}/app-bundles?per_page=20'
-        
+        url = self._url('apps', app_id, 'app-bundles') + '?per_page=20'
+
         if status:
             url += f'&status={status}'
 
-        response = self.client.get(url, headers=self.headers)
-        response.raise_for_status()
+        return self._get_all_pages(url)
 
-        json_data = response.json()
-        data = json_data['data']
-
-        if json_data.get('links') and 'next' in json_data['links']:
-            while json_data['links']['next']:
-                response = self.client.get(json_data['links']['next'], headers=self.headers)
-                response.raise_for_status()
-                json_data = response.json()
-                data += json_data['data']
-
-        return data
-    
     def get_app_bundle_detail(self, app_bundle_id):
         """Get details of a specific app bundle"""
-        url = f'{self.base_url}/app-bundles/{app_bundle_id}'
+        url = self._url('app-bundles', app_bundle_id)
 
         response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
-    
+
     def get_all_files_for_app_bundle(self, app_bundle_id):
         """Get all files associated with an app bundle"""
-        url = f'{self.base_url}/app-bundles/{app_bundle_id}/files?per_page=20'
-
-        response = self.client.get(url, headers=self.headers)
-        response.raise_for_status()
-
-        json_data = response.json()
-        data = json_data['data']
-
-        if json_data.get('links') and 'next' in json_data['links']:
-            while json_data['links']['next']:
-                response = self.client.get(json_data['links']['next'], headers=self.headers)
-                response.raise_for_status()
-                json_data = response.json()
-                data += json_data['data']
-
-        return data
+        url = self._url('app-bundles', app_bundle_id, 'files') + '?per_page=20'
+        return self._get_all_pages(url)
 
     def add_files_to_app_bundle(self, app_bundle_id, files):
         """Add files to an existing app bundle
-        
+
         files should be a list of dictionaries with keys:
         - fileId: The ID of the file
         - path: (optional) The path where the file should be placed
         """
-        url = f'{self.base_url}/app-bundles/{app_bundle_id}/files'
-        
+        url = self._url('app-bundles', app_bundle_id, 'files')
+
         data = {'files': files}
 
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
-        
+
         return response.json()
-    
+
     def finalize_app_bundle(self, app_bundle_id):
         """Finalize an app bundle to start processing
 
         Returns:
             AppBundle object with id, status, label, appBuild, createdAt, updatedAt
         """
-        url = f'{self.base_url}/app-bundles/{app_bundle_id}/finalize'
+        url = self._url('app-bundles', app_bundle_id, 'finalize')
 
         response = self.client.post(url, json={}, headers=self.headers)
         response.raise_for_status()
@@ -141,7 +114,7 @@ class AppBundlesService(ApiService):
         Returns:
             AppBundle object with updated label
         """
-        url = f'{self.base_url}/app-bundles/{app_bundle_id}'
+        url = self._url('app-bundles', app_bundle_id)
 
         data = {'label': label}
 
@@ -427,7 +400,7 @@ class AppBundlesService(ApiService):
         Returns:
             Bundle creation response with bundle ID
         """
-        url = f'{self.base_url}/app-bundles'
+        url = self._url('app-bundles')
 
         data = {
             'appBuildId': build_id

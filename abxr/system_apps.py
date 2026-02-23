@@ -21,18 +21,21 @@ class Commands(Enum):
     APP_COMPATIBILITIES = "app_compatibilities"
     APP_COMPATIBILITY_DETAILS = "app_compatibility_details"
 
-    
+
 class SystemAppsService(ApiService):
     MAX_PARTS_PER_REQUEST = 4
 
     def __init__(self, base_url, token):
-        base_url = base_url.split('/v2')[0]
-        base_url = f'{base_url}/internal'
-
         super().__init__(base_url, token)
+        self._internal_base = f'{self._base_origin}/internal'
+
+    def _url(self, *segments):
+        """Override: internal endpoints are non-versioned."""
+        path = '/'.join(str(s).strip('/') for s in segments)
+        return f'{self._internal_base}/{path}'
 
     def _initiate_upload(self, app_type, file_name, release_channel_id, app_compatibility_id, version_name=None, version_code=None):
-        url = f'{self.base_url}/apps/{app_type}/versions'
+        url = self._url('apps', app_type, 'versions')
 
         data = {'filename': file_name,
                 'appCompatibilityId': app_compatibility_id
@@ -55,29 +58,29 @@ class SystemAppsService(ApiService):
         return response.json()
 
     def _presigned_url(self, app_type, version_id, upload_id, key, part_numbers):
-        url = f'{self.base_url}/apps/{app_type}/versions/{version_id}/pre-sign'
-        data = {'key': key, 
-                'uploadId': upload_id, 
-                'partNumbers': part_numbers 
+        url = self._url('apps', app_type, 'versions', version_id, 'pre-sign')
+        data = {'key': key,
+                'uploadId': upload_id,
+                'partNumbers': part_numbers
                 }
-        
+
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
-        
+
         return response.json()
 
     def _complete_upload(self, app_type, version_id, upload_id, key, parts, version_name, release_notes):
-        url = f'{self.base_url}/apps/{app_type}/versions/{version_id}/complete'
-        data = {'key': key, 
-                'uploadId': upload_id, 
-                'parts': parts, 
-                'versionName': version_name, 
+        url = self._url('apps', app_type, 'versions', version_id, 'complete')
+        data = {'key': key,
+                'uploadId': upload_id,
+                'parts': parts,
+                'versionName': version_name,
                 'releaseNotes': release_notes
                 }
-        
+
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
-        
+
         return response.json()
 
     def upload_file(self, app_type, file_path, release_channel_name, app_compatibility_name, version_number, version_code, release_notes, silent):
@@ -118,9 +121,9 @@ class SystemAppsService(ApiService):
         with tqdm(total=file.get_size(), unit='B', unit_scale=True, desc=f'Uploading {file.file_name}', disable=silent) as pbar:
             for i in range(0, len(part_numbers), self.MAX_PARTS_PER_REQUEST):
                 part_numbers_slice = part_numbers[i:i + self.MAX_PARTS_PER_REQUEST]
-                
+
                 presigned_url_response = self._presigned_url(app_type, version_id, upload_id, key, part_numbers_slice)
-                
+
                 for item in presigned_url_response:
                     part_number = item['partNumber']
                     presigned_url = item['presignedUrl']
@@ -131,85 +134,38 @@ class SystemAppsService(ApiService):
 
                     uploaded_parts += [{'partNumber': part_number, 'eTag': response.headers['ETag']}]
                     pbar.update(len(part))
-                
+
             complete_response = self._complete_upload(app_type, version_id, upload_id, key, uploaded_parts, version_number, release_notes)
             return complete_response
-        
+
     def get_all_release_channels_for_app(self, app_type):
-        url = f'{self.base_url}/apps/{app_type}/release-channels?per_page=20'
+        url = self._url('apps', app_type, 'release-channels') + '?per_page=20'
+        return self._get_all_pages(url)
 
-        response = self.client.get(url, headers=self.headers)
-        response.raise_for_status()
-
-        json = response.json()
-        data = json['data']
-
-        if json['links']:
-            while json['links']['next']:
-                response = self.client.get(json['links']['next'], headers=self.headers)
-                response.raise_for_status()
-                json = response.json()
-
-                data += json['data']
-
-        return data
-    
     def get_release_channel_detail(self, app_type, release_channel_id):
-        url = f'{self.base_url}/apps/{app_type}/release-channels/{release_channel_id}'
+        url = self._url('apps', app_type, 'release-channels', release_channel_id)
 
         response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
-    
+
     def get_all_app_compatibilities_for_app(self, app_type):
-        url = f'{self.base_url}/apps/{app_type}/app-compatibilities?per_page=20'
+        url = self._url('apps', app_type, 'app-compatibilities') + '?per_page=20'
+        return self._get_all_pages(url)
 
-        response = self.client.get(url, headers=self.headers)
-        response.raise_for_status()
-
-        json = response.json()
-
-        data = json['data']
-
-        if json['links']:
-            while json['links']['next']:
-                response = self.client.get(json['links']['next'], headers=self.headers)
-                response.raise_for_status()
-                json = response.json()
-
-                data += json['data']
-
-        return data
-    
     def get_app_compatibility_detail(self, app_type, app_compatibility_id):
-        url = f'{self.base_url}/apps/{app_type}/app-compatibilities/{app_compatibility_id}'
+        url = self._url('apps', app_type, 'app-compatibilities', app_compatibility_id)
 
         response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
-    
+
     def get_all_app_versions_by_type(self, app_type):
-        url = f'{self.base_url}/apps/{app_type}/versions?per_page=20'
+        url = self._url('apps', app_type, 'versions') + '?per_page=20'
+        return self._get_all_pages(url)
 
-        response = self.client.get(url, headers=self.headers)
-        response.raise_for_status()
-
-        json = response.json()
-
-        data = json['data']
-
-        if json['links']:
-            while json['links']['next']:
-                response = self.client.get(json['links']['next'], headers=self.headers)
-                response.raise_for_status()
-                json = response.json()
-
-                data += json['data']
-
-        return data
-    
 
 class CommandHandler:
     def __init__(self, args):
@@ -240,4 +196,3 @@ class CommandHandler:
         elif self.args.system_apps_command == Commands.UPLOAD.value:
             app_version = self.service.upload_file(self.args.app_type, self.args.filename, self.args.release_channel_name, self.args.app_compatibility_name, self.args.version_number, self.args.version_code, self.args.notes, self.args.silent)
             print_formatted(self.args.format, app_version)
-

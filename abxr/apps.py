@@ -37,7 +37,7 @@ class AppsService(ApiService):
         super().__init__(base_url, token)
 
     def _initiate_upload(self, app_id, file_name, app_build_type="standalone", release_channel_id=None, new_release_channel_title=None):
-        url = f'{self.base_url}/apps/{app_id}/versions'
+        url = self._url('apps', app_id, 'versions')
         data = {'filename': file_name}
 
         if app_build_type:
@@ -55,29 +55,29 @@ class AppsService(ApiService):
         return response.json()
 
     def _presigned_url(self, app_id, version_id, upload_id, key, part_numbers):
-        url = f'{self.base_url}/apps/{app_id}/versions/{version_id}/pre-sign'
-        data = {'key': key, 
-                'uploadId': upload_id, 
-                'partNumbers': part_numbers 
+        url = self._url('apps', app_id, 'versions', version_id, 'pre-sign')
+        data = {'key': key,
+                'uploadId': upload_id,
+                'partNumbers': part_numbers
                 }
-        
+
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
-        
+
         return response.json()
 
     def _complete_upload(self, app_id, version_id, upload_id, key, parts, version_name, release_notes):
-        url = f'{self.base_url}/apps/{app_id}/versions/{version_id}/complete'
-        data = {'key': key, 
-                'uploadId': upload_id, 
-                'parts': parts, 
-                'versionName': version_name, 
+        url = self._url('apps', app_id, 'versions', version_id, 'complete')
+        data = {'key': key,
+                'uploadId': upload_id,
+                'parts': parts,
+                'versionName': version_name,
                 'releaseNotes': release_notes
                 }
-        
+
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
-        
+
         return response.json()
 
     def upload_file(self, app_id, file_path, version_number, release_notes, silent, wait, max_wait_time_sec=60, app_build_type="standalone", release_channel_id=None, new_release_channel_title=None):
@@ -97,9 +97,9 @@ class AppsService(ApiService):
         with tqdm(total=file.get_size(), unit='B', unit_scale=True, desc=f'Uploading {file.file_name}', disable=silent) as pbar:
             for i in range(0, len(part_numbers), self.MAX_PARTS_PER_REQUEST):
                 part_numbers_slice = part_numbers[i:i + self.MAX_PARTS_PER_REQUEST]
-                
+
                 presigned_url_response = self._presigned_url(app_id, version_id, upload_id, key, part_numbers_slice)
-                
+
                 for item in presigned_url_response:
                     part_number = item['partNumber']
                     presigned_url = item['presignedUrl']
@@ -110,7 +110,7 @@ class AppsService(ApiService):
 
                     uploaded_parts += [{'partNumber': part_number, 'eTag': response.headers['ETag']}]
                     pbar.update(len(part))
-                
+
             complete_response = self._complete_upload(app_id, version_id, upload_id, key, uploaded_parts, version_number, release_notes)
 
             total_time_sec = 0
@@ -133,7 +133,7 @@ class AppsService(ApiService):
                             raise Exception(f"Upload failed server processing for version {version_id} of app {app_id}.")
                     else:
                         raise Exception(f"Version {version_id} not found for uploaded app {app_id}.")
-                    
+
                     pbar.set_description(f'Been waiting for upload to complete for {total_time_sec} seconds')
                     time.sleep(1)
                     total_time_sec += 1
@@ -146,54 +146,22 @@ class AppsService(ApiService):
                 complete_response['appBundleId'] = app_bundle_id
 
             return complete_response
-        
+
     def get_all_apps(self):
-        url = f'{self.base_url}/apps?per_page=20'
+        url = self._url('apps') + '?per_page=20'
+        return self._get_all_pages(url)
 
-        response = self.client.get(url, headers=self.headers)
-        response.raise_for_status()
-
-        json = response.json()
-
-        data = json['data']
-
-        if json['links']:
-            while json['links']['next']:
-                response = self.client.get(json['links']['next'], headers=self.headers)
-                response.raise_for_status()
-                json = response.json()
-
-                data += json['data']
-
-        return data
-    
     def get_app_detail(self, app_id):
-        url = f'{self.base_url}/apps/{app_id}'
+        url = self._url('apps', app_id)
 
         response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
-    
+
     def get_all_versions_for_app(self, app_id):
-        url = f'{self.base_url}/apps/{app_id}/versions'
-
-        response = self.client.get(url, headers=self.headers)
-        response.raise_for_status()
-
-        json = response.json()
-
-        data = json['data']
-
-        if json['links']:
-            while json['links']['next']:
-                response = self.client.get(json['links']['next'], headers=self.headers)
-                response.raise_for_status()
-                json = response.json()
-
-                data += json['data']
-
-        return data
+        url = self._url('apps', app_id, 'versions')
+        return self._get_all_pages(url)
 
     def get_versions_by_sha256(self, app_id, sha256_hashes):
         """Query app versions by SHA-256 hashes, return only AVAILABLE versions"""
@@ -202,7 +170,7 @@ class AppsService(ApiService):
 
         # Build query string with sha256[] array parameters
         query_params = '&'.join([f'sha256[]={hash}' for hash in sha256_hashes])
-        url = f'{self.base_url}/apps/{app_id}/versions?{query_params}'
+        url = self._url('apps', app_id, 'versions') + '?' + query_params
 
         response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
@@ -220,7 +188,7 @@ class AppsService(ApiService):
 
         # Build query string with sha512[] array parameters
         query_params = '&'.join([f'sha512[]={hash}' for hash in sha512_hashes])
-        url = f'{self.base_url}/apps/{app_id}/files?{query_params}'
+        url = self._url('apps', app_id, 'files') + '?' + query_params
 
         response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
@@ -229,35 +197,19 @@ class AppsService(ApiService):
         return json_data.get('data', [])
 
     def get_all_release_channels_for_app(self, app_id):
-        url = f'{self.base_url}/apps/{app_id}/release-channels'
+        url = self._url('apps', app_id, 'release-channels')
+        return self._get_all_pages(url)
 
-        response = self.client.get(url, headers=self.headers)
-        response.raise_for_status()
-
-        json = response.json()
-
-        data = json['data']
-
-        if json['links']:
-            while json['links']['next']:
-                response = self.client.get(json['links']['next'], headers=self.headers)
-                response.raise_for_status()
-                json = response.json()
-
-                data += json['data']
-
-        return data
-    
     def get_release_channel_detail(self, app_id, release_channel_id):
-        url = f'{self.base_url}/apps/{app_id}/release-channels/{release_channel_id}'
+        url = self._url('apps', app_id, 'release-channels', release_channel_id)
 
         response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
-    
+
     def set_version_for_release_channel(self, app_id, release_channel_id, version_id):
-        url = f'{self.base_url}/apps/{app_id}/release-channels/{release_channel_id}'
+        url = self._url('apps', app_id, 'release-channels', release_channel_id)
 
         data = {'versionId': version_id}
 
@@ -265,18 +217,18 @@ class AppsService(ApiService):
         response.raise_for_status()
 
         return response.json()
-    
+
     def share_app(self, app_id, release_channel_id, organization_slug):
-        url = f'{self.base_url}/apps/{app_id}/release-channels/{release_channel_id}/share'
+        url = self._url('apps', app_id, 'release-channels', release_channel_id, 'share')
         data = {'organizationSlug': organization_slug}
 
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
-    
+
     def revoke_shared_app(self, app_id, release_channel_id, organization_slug):
-        url = f'{self.base_url}/apps/{app_id}/release-channels/{release_channel_id}/share'
+        url = self._url('apps', app_id, 'release-channels', release_channel_id, 'share')
         data = {'organizationSlug': organization_slug}
 
         response = self.client.delete(url, json=data, headers=self.headers)
@@ -411,10 +363,10 @@ class CommandHandler:
         self.service = AppsService(self.args.url, self.args.token)
 
     def run(self):
-        if self.args.apps_command == Commands.LIST.value:            
+        if self.args.apps_command == Commands.LIST.value:
             apps_list = self.service.get_all_apps()
             print_formatted(self.args.format, apps_list)
-            
+
         elif self.args.apps_command == Commands.DETAILS.value:
             app_detail = self.service.get_app_detail(self.args.app_id)
             print_formatted(self.args.format, app_detail)
