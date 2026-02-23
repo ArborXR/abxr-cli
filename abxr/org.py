@@ -17,13 +17,13 @@ class OrgService(ApiService):
         super().__init__(base_url, token)
 
     def get_org_info(self):
-        url = f'{self.base_url}/current-organization'
+        url = self._url('current-organization')
 
         response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
-    
+
 
 class CommandHandler:
     def __init__(self, args):
@@ -31,6 +31,6 @@ class CommandHandler:
         self.service = OrgService(self.args.url, self.args.token)
 
     def run(self):
-        if self.args.org_command == Commands.INFO.value:            
+        if self.args.org_command == Commands.INFO.value:
             org_info = self.service.get_org_info()
             print_formatted(self.args.format, org_info)
