@@ -8,11 +8,11 @@ import sys
 import requests
 
 class ApiService:
-    def __init__(self, base_url, token):
+    def __init__(self, base_url, token, _api_version=None):
         self._raw_base_url = base_url
         self._base_origin = re.sub(r'/api/v\d+/?$', '', base_url.rstrip('/'))
-        self._api_version = None
-        self._version_detected = False
+        self._api_version = _api_version
+        self._version_detected = _api_version is not None
 
         self.headers = {
             'Authorization': f'Bearer {token}',

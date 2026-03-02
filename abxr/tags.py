@@ -83,8 +83,8 @@ class CommandHandler:
             print_formatted(self.args.format, tag_detail)
 
         elif self.args.tags_command == Commands.UPDATE.value:
-            updated_tag = self.service.update_tag(self.args.id, self.args.name)
+            updated_tag = self.service.update_tag(self.args.tag_id, self.args.name)
             print_formatted(self.args.format, updated_tag)
 
         elif self.args.tags_command == Commands.DELETE.value:
-            self.service.delete_tag(self.args.id)
+            self.service.delete_tag(self.args.tag_id)

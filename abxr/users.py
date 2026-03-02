@@ -83,12 +83,12 @@ class CommandHandler:
             print_formatted(self.args.format, new_user)
 
         elif self.args.users_command == Commands.DETAILS.value:
-            user_detail = self.service.get_user_detail(self.args.id)
+            user_detail = self.service.get_user_detail(self.args.user_id)
             print_formatted(self.args.format, user_detail)
 
         elif self.args.users_command == Commands.UPDATE.value:
-            updated_user = self.service.update_user(self.args.id, self.args.first_name, self.args.last_name)
+            updated_user = self.service.update_user(self.args.user_id, self.args.first_name, self.args.last_name)
             print_formatted(self.args.format, updated_user)
 
         elif self.args.users_command == Commands.DELETE.value:
-            self.service.delete_user(self.args.id)
+            self.service.delete_user(self.args.user_id)

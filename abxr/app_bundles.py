@@ -257,7 +257,7 @@ class AppBundlesService(ApiService):
         if not file_hashes:
             return existing_files_map
 
-        apps_service = AppsService(self.base_url, self.headers['Authorization'].replace('Bearer ', ''))
+        apps_service = AppsService(self.base_url, self.headers['Authorization'].replace('Bearer ', ''), _api_version=self._api_version)
 
         if not silent:
             print(f"Checking for existing files...")
@@ -294,7 +294,7 @@ class AppBundlesService(ApiService):
         if not silent:
             print(f"Uploading {len(files_to_upload)} new file(s)...")
 
-        files_service = FilesService(self.base_url, self.headers['Authorization'].replace('Bearer ', ''))
+        files_service = FilesService(self.base_url, self.headers['Authorization'].replace('Bearer ', ''), _api_version=self._api_version)
 
         for file_path in files_to_upload:
             rel_path = file_path.relative_to(folder)
@@ -439,7 +439,7 @@ class AppBundlesService(ApiService):
         all_files = list(file_hashes.keys())
 
         # Query for existing resources
-        apps_service = AppsService(self.base_url, self.headers['Authorization'].replace('Bearer ', ''))
+        apps_service = AppsService(self.base_url, self.headers['Authorization'].replace('Bearer ', ''), _api_version=self._api_version)
 
         if not silent:
             print(f"Checking for existing build...")
