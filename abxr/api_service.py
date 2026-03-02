@@ -101,3 +101,22 @@ class ApiService:
     def _parse_response(self, response):
         """Parse JSON response, returning None for empty bodies (204 No Content)."""
         return response.json() if response.content else None
+
+    @staticmethod
+    def _normalize_status(raw_status):
+        """Normalize API status to canonical uppercase form.
+        v2 returns enum names (AVAILABLE, ERROR); v3 returns values (available, error).
+        """
+        if not raw_status:
+            return raw_status
+        return raw_status.upper()
+
+    @staticmethod
+    def _get_hash(data, field='sha512'):
+        """Extract hash from v2 flat field or v3 nested checksum object."""
+        checksum = data.get('checksum')
+        if isinstance(checksum, dict):
+            value = checksum.get('value')
+            if value:
+                return value
+        return data.get(field)

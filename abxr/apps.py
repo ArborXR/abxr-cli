@@ -33,8 +33,8 @@ class Commands(Enum):
 class AppsService(ApiService):
     MAX_PARTS_PER_REQUEST = 4
 
-    def __init__(self, base_url, token):
-        super().__init__(base_url, token)
+    def __init__(self, base_url, token, **kwargs):
+        super().__init__(base_url, token, **kwargs)
 
     def _initiate_upload(self, app_id, file_name, app_build_type="standalone", release_channel_id=None, new_release_channel_title=None):
         url = self._url('apps', app_id, 'versions')
@@ -126,10 +126,10 @@ class AppsService(ApiService):
                     versions = self.get_all_versions_for_app(app_id)
                     version = next((v for v in versions if v['id'] == version_id), None)
                     if version:
-                        status = version['status']
+                        status = self._normalize_status(version['status'])
                         if status == 'AVAILABLE':
                             break
-                        elif status == 'FAILED':
+                        elif status == 'ERROR':
                             raise Exception(f"Upload failed server processing for version {version_id} of app {app_id}.")
                     else:
                         raise Exception(f"Version {version_id} not found for uploaded app {app_id}.")
@@ -179,7 +179,7 @@ class AppsService(ApiService):
         data = json_data.get('data', [])
 
         # Filter for AVAILABLE status only
-        return [v for v in data if v.get('status') == 'AVAILABLE']
+        return [v for v in data if self._normalize_status(v.get('status')) == 'AVAILABLE']
 
     def get_files_by_sha512(self, app_id, sha512_hashes):
         """Query app files by SHA-512 hashes"""

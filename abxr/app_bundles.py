@@ -33,8 +33,8 @@ class Commands(Enum):
 class AppBundlesService(ApiService):
     MAX_PARTS_PER_REQUEST = 4
 
-    def __init__(self, base_url, token):
-        super().__init__(base_url, token)
+    def __init__(self, base_url, token, **kwargs):
+        super().__init__(base_url, token, **kwargs)
 
     def calculate_sha256(self, file_path):
         """Calculate SHA-256 hash of a file (for builds)"""
@@ -138,9 +138,9 @@ class AppBundlesService(ApiService):
         mismatches = []
 
         for bundle_file in bundle_files:
-            file_name = bundle_file.get('name')
+            file_name = bundle_file.get('name') or bundle_file.get('filename')  # v2: 'name', v3: 'filename'
             bundle_location = bundle_file.get('location')
-            bundle_hash = bundle_file.get('sha512')
+            bundle_hash = self._get_hash(bundle_file, 'sha512')
 
             # Find local file with matching name
             local_file = None
@@ -269,8 +269,8 @@ class AppBundlesService(ApiService):
             existing_files_batch = apps_service.get_files_by_sha512(app_id, batch_hashes)
 
             for file_data in existing_files_batch:
-                file_hash = file_data.get('sha512')
-                file_name = file_data.get('name')
+                file_hash = self._get_hash(file_data, 'sha512')
+                file_name = file_data.get('name') or file_data.get('filename')  # v2: 'name', v3: 'filename'
                 # Match by hash AND filename for safety
                 for file_path, path_hash in file_hashes.items():
                     if path_hash == file_hash and file_path.name == file_name:
@@ -578,7 +578,7 @@ class AppBundlesService(ApiService):
 
         # Validate build matches
         bundle_build = bundle.get('appBuild', {})
-        bundle_build_hash = bundle_build.get('sha256')
+        bundle_build_hash = self._get_hash(bundle_build, 'sha256')
 
         if not bundle_build_hash:
             raise ValueError("Bundle does not have an associated build")
@@ -608,7 +608,7 @@ class AppBundlesService(ApiService):
                 print(f"All existing files verified")
 
         # Determine missing files
-        bundle_file_hashes = {f.get('sha512') for f in bundle_files if f.get('sha512')}
+        bundle_file_hashes = {self._get_hash(f, 'sha512') for f in bundle_files if self._get_hash(f, 'sha512')}
         files_to_upload = [path for path, hash in file_hashes.items()
                           if hash not in bundle_file_hashes]
 
