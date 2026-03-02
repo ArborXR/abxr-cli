@@ -326,6 +326,7 @@ def main():
     users_create_parser.add_argument("--first_name", help="First name of the new user", type=str, required=True)
     users_create_parser.add_argument("--last_name", help="Last name of the new user", type=str, required=True)
     users_create_parser.add_argument("--email", help="Email of the new user", type=str, required=True)
+    users_create_parser.add_argument("--org_role_id", help="Organization role ID", type=str)
 
     # User Details
     users_detail_parser = users_subparsers.add_parser(UsersCommands.DETAILS.value, help="Get details of a user")

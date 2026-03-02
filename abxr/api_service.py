@@ -97,3 +97,7 @@ class ApiService:
             data += json_data.get('data', [])
 
         return data
+
+    def _parse_response(self, response):
+        """Parse JSON response, returning None for empty bodies (204 No Content)."""
+        return response.json() if response.content else None

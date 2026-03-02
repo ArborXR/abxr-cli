@@ -62,7 +62,7 @@ class TagsService(ApiService):
         response = self.client.delete(url, headers=self.headers)
         response.raise_for_status()
 
-        return response.json()
+        return self._parse_response(response)
 
 class CommandHandler:
     def __init__(self, args):

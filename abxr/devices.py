@@ -66,7 +66,7 @@ class DevicesService(ApiService):
         response = self.client.post(url, headers=self.headers)
         response.raise_for_status()
 
-        return response.json()
+        return self._parse_response(response)
 
     def shutdown_device(self, device_id):
         url = self._url('devices', device_id, 'shutdown')
@@ -74,7 +74,7 @@ class DevicesService(ApiService):
         response = self.client.post(url, headers=self.headers)
         response.raise_for_status()
 
-        return response.json()
+        return self._parse_response(response)
 
     def factory_reset_device(self, device_id):
         url = self._url('devices', device_id, 'factory-reset')
@@ -82,7 +82,7 @@ class DevicesService(ApiService):
         response = self.client.post(url, headers=self.headers)
         response.raise_for_status()
 
-        return response.json()
+        return self._parse_response(response)
 
     def list_release_channels_for_device(self, device_id):
         url = self._url('devices', device_id, 'release-channels') + '?per_page=20'
@@ -98,7 +98,7 @@ class DevicesService(ApiService):
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
 
-        return response.json()
+        return self._parse_response(response)
 
     def remove_release_channel_from_device(self, device_id, release_channel_id):
         url = self._url('devices', device_id, 'release-channels')
@@ -110,7 +110,7 @@ class DevicesService(ApiService):
         response = self.client.delete(url, json=data, headers=self.headers)
         response.raise_for_status()
 
-        return response.json()
+        return self._parse_response(response)
 
     def list_files_for_device(self, device_id):
         url = self._url('devices', device_id, 'files') + '?per_page=20'
@@ -126,7 +126,7 @@ class DevicesService(ApiService):
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
 
-        return response.json()
+        return self._parse_response(response)
 
     def remove_file_from_device(self, device_id, file_id):
         url = self._url('devices', device_id, 'files')
@@ -138,7 +138,7 @@ class DevicesService(ApiService):
         response = self.client.delete(url, json=data, headers=self.headers)
         response.raise_for_status()
 
-        return response.json()
+        return self._parse_response(response)
 
     def list_videos_for_device(self, device_id):
         url = self._url('devices', device_id, 'videos') + '?per_page=20'
@@ -154,7 +154,7 @@ class DevicesService(ApiService):
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
 
-        return response.json()
+        return self._parse_response(response)
 
     def remove_video_from_device(self, device_id, video_id):
         url = self._url('devices', device_id, 'videos')
@@ -166,7 +166,7 @@ class DevicesService(ApiService):
         response = self.client.delete(url, json=data, headers=self.headers)
         response.raise_for_status()
 
-        return response.json()
+        return self._parse_response(response)
 
     def migrate_device_to_org(self, device_id, new_organization_slug, new_organization_token, new_organization_group_id):
         url = self._url('devices', device_id, 'migrate', new_organization_slug)

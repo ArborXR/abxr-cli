@@ -40,7 +40,7 @@ class GroupsService(ApiService):
         url = self._url('groups')
         payload = {
             "name": group_name,
-            "parent_id": parent_id
+            "parentId": parent_id
         }
 
         response = self.client.post(url, headers=self.headers, json=payload)
@@ -61,7 +61,7 @@ class GroupsService(ApiService):
 
         payload = {
             "name": group_name,
-            "parent_id": parent_id
+            "parentId": parent_id
         }
 
         response = self.client.put(url, headers=self.headers, json=payload)
@@ -75,7 +75,7 @@ class GroupsService(ApiService):
         response = self.client.delete(url, headers=self.headers)
         response.raise_for_status()
 
-        return response.json()
+        return self._parse_response(response)
 
     def configure_group(self, group_id):
         url = self._url('groups', group_id, 'configure')
@@ -110,7 +110,7 @@ class GroupsService(ApiService):
         response = self.client.post(url, headers=self.headers, json=payload)
         response.raise_for_status()
 
-        return response.json()
+        return self._parse_response(response)
 
     def remove_release_channel_from_group(self, group_id, release_channel_id):
         url = self._url('groups', group_id, 'release-channels', release_channel_id)
@@ -118,7 +118,7 @@ class GroupsService(ApiService):
         response = self.client.delete(url, headers=self.headers)
         response.raise_for_status()
 
-        return response.json()
+        return self._parse_response(response)
 
     def add_file_to_group(self, group_id, file_id):
         url = self._url('groups', group_id, 'files')
@@ -127,7 +127,7 @@ class GroupsService(ApiService):
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
 
-        return response.json()
+        return self._parse_response(response)
 
     def remove_file_from_group(self, group_id, file_id):
         url = self._url('groups', group_id, 'files')
@@ -136,7 +136,7 @@ class GroupsService(ApiService):
         response = self.client.delete(url, json=data, headers=self.headers)
         response.raise_for_status()
 
-        return response.json()
+        return self._parse_response(response)
 
     def add_video_to_group(self, group_id, video_id):
         url = self._url('groups', group_id, 'videos')
@@ -145,7 +145,7 @@ class GroupsService(ApiService):
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
 
-        return response.json()
+        return self._parse_response(response)
 
     def remove_video_from_group(self, group_id, video_id):
         url = self._url('groups', group_id, 'videos')
@@ -154,7 +154,7 @@ class GroupsService(ApiService):
         response = self.client.delete(url, json=data, headers=self.headers)
         response.raise_for_status()
 
-        return response.json()
+        return self._parse_response(response)
 
     def get_group_hierarchy(self):
         url = self._url('group-hierarchy')
@@ -197,7 +197,7 @@ class CommandHandler:
             print_formatted(self.args.format, group_detail)
 
         elif self.args.groups_command == Commands.DUPLICATE.value:
-            group_detail = self.service.duplicate_group(self.args.group_id, self.args.new_name)
+            group_detail = self.service.duplicate_group(self.args.group_id, self.args.name)
             print_formatted(self.args.format, group_detail)
 
         elif self.args.groups_command == Commands.RELEASE_CHANNELS_LIST.value:
@@ -205,22 +205,25 @@ class CommandHandler:
             print_formatted(self.args.format, release_channels)
 
         elif self.args.groups_command == Commands.RELEASE_CHANNEL_ADD.value:
-            group_detail = self.service.add_group_release_channel(self.args.group_id, self.args.release_channel_id)
-            print_formatted(self.args.format, group_detail)
+            result = self.service.add_group_release_channel(self.args.group_id, self.args.release_channel_id)
+            if result is not None:
+                print_formatted(self.args.format, result)
 
         elif self.args.groups_command == Commands.RELEASE_CHANNEL_REMOVE.value:
             self.service.remove_release_channel_from_group(self.args.group_id, self.args.release_channel_id)
 
         elif self.args.groups_command == Commands.FILES_ADD.value:
-            group_detail = self.service.add_file_to_group(self.args.group_id, self.args.file_id)
-            print_formatted(self.args.format, group_detail)
+            result = self.service.add_file_to_group(self.args.group_id, self.args.file_id)
+            if result is not None:
+                print_formatted(self.args.format, result)
 
         elif self.args.groups_command == Commands.FILES_REMOVE.value:
             self.service.remove_file_from_group(self.args.group_id, self.args.file_id)
 
         elif self.args.groups_command == Commands.VIDEO_ADD.value:
-            group_detail = self.service.add_video_to_group(self.args.group_id, self.args.video_id)
-            print_formatted(self.args.format, group_detail)
+            result = self.service.add_video_to_group(self.args.group_id, self.args.video_id)
+            if result is not None:
+                print_formatted(self.args.format, result)
 
         elif self.args.groups_command == Commands.VIDEO_REMOVE.value:
             self.service.remove_video_from_group(self.args.group_id, self.args.video_id)

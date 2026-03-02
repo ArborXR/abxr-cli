@@ -135,7 +135,7 @@ class FilesService(ApiService):
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
 
-        return response.json()
+        return self._parse_response(response)
 
     def remove_file_from_device(self, file_id, device_id):
         url = self._url('devices', device_id, 'files')
@@ -144,7 +144,7 @@ class FilesService(ApiService):
         response = self.client.delete(url, json=data, headers=self.headers)
         response.raise_for_status()
 
-        return response.json()
+        return self._parse_response(response)
 
     def assign_file_to_group(self, file_id, group_id):
         url = self._url('groups', group_id, 'files')
@@ -153,7 +153,7 @@ class FilesService(ApiService):
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
 
-        return response.json()
+        return self._parse_response(response)
 
     def remove_file_from_group(self, file_id, group_id):
         url = self._url('groups', group_id, 'files')
@@ -162,7 +162,7 @@ class FilesService(ApiService):
         response = self.client.delete(url, json=data, headers=self.headers)
         response.raise_for_status()
 
-        return response.json()
+        return self._parse_response(response)
 
 class CommandHandler:
     def __init__(self, args):

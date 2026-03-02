@@ -32,8 +32,9 @@ class UsersService(ApiService):
             "firstName": first_name,
             "lastName": last_name,
             "email": email,
-            "organizationRoleId": org_role_id
         }
+        if org_role_id is not None:
+            payload["organizationRoleId"] = org_role_id
 
         response = self.client.post(url, headers=self.headers, json=payload)
         response.raise_for_status()
@@ -66,7 +67,7 @@ class UsersService(ApiService):
         response = self.client.delete(url, headers=self.headers)
         response.raise_for_status()
 
-        return response.json()
+        return self._parse_response(response)
 
 class CommandHandler:
     def __init__(self, args):
