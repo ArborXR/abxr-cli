@@ -294,6 +294,29 @@ These commands are used for device-related operations
 * Description: Reboot a device immediately.
 
 
+### Organization Commands
+
+These commands retrieve organization-level information.
+
+#### Subcommands
+
+##### info
+* Usage:
+`abxr-cli org info`
+* Description: Get organization info connected to the current API token.
+
+
+### Token Commands
+
+These commands retrieve information about the current API token.
+
+#### Subcommands
+
+##### info
+* Usage:
+`abxr-cli token info`
+* Description: Get token metadata including the detected API version, associated organization, and permissions.
+
 
 ## CLI Usage Examples
 
