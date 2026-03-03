@@ -10,10 +10,10 @@ import requests
 class ApiService:
     def __init__(self, base_url, token, _api_version=None):
         self._raw_base_url = base_url
-        # Strip any /api or /api/vN suffix — we only need the base origin since
+        # Strip any /api suffix and what follows — we only need the base origin since
         # the version is auto-detected from the token-info endpoint.
-        # Handles: /api/v2, /api/v3, /api, or bare origin.
-        self._base_origin = re.sub(r'/api(?:/v\d+)?/?$', '', base_url.rstrip('/'))
+        # Handles: /api/v2, /api/v3, /api/internal, /api, or bare origin.
+        self._base_origin = re.sub(r'/api(?:/\S+)?/?$', '', base_url.rstrip('/'))
         self._api_version = _api_version
         self._version_detected = _api_version is not None
 

@@ -27,7 +27,7 @@ class SystemAppsService(ApiService):
 
     def __init__(self, base_url, token):
         super().__init__(base_url, token)
-        self._internal_base = f'{self._base_origin}/internal'
+        self._internal_base = f'{self._base_origin}/api/internal'
 
     def _url(self, *segments):
         """Override: internal endpoints are non-versioned."""
