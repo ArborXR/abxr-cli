@@ -27,7 +27,7 @@ from abxr.users import Commands as UsersCommands, CommandHandler as UsersCommand
 from abxr.videos import Commands as VideosCommands, CommandHandler as VideosCommandHandler
 from abxr.token import Commands as TokenCommands, CommandHandler as TokenCommandHandler
 
-ABXR_API_URL = os.environ.get("ABXR_API_URL", "https://api.xrdm.app/api/v2")
+ABXR_API_URL = os.environ.get("ABXR_API_URL", "https://api.xrdm.app")
 ABXR_API_TOKEN = os.environ.get("ABXR_API_TOKEN") or os.environ.get("ARBORXR_ACCESS_TOKEN")
 
 
