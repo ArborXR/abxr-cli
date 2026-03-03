@@ -108,11 +108,15 @@ class ApiService:
     @staticmethod
     def _normalize_status(raw_status):
         """Normalize API status to canonical uppercase form.
-        v2 returns enum names (AVAILABLE, ERROR); v3 returns values (available, error).
+        v2 returns enum names (AVAILABLE, FAILED); v3 returns values (available, error).
+        Maps FAILED -> ERROR for consistency.
         """
         if not raw_status:
             return raw_status
-        return raw_status.upper()
+        status = raw_status.upper()
+        if status == 'FAILED':
+            status = 'ERROR'
+        return status
 
     @staticmethod
     def _get_hash(data, field='sha512'):
