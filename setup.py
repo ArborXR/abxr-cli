@@ -6,7 +6,7 @@ from setuptools import setup
 
 setup(
     name = 'abxrcli',
-    version = '0.15.3',
+    version = '0.16.0',
     packages = ['abxr'],
     entry_points = {
         'console_scripts': [

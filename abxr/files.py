@@ -26,11 +26,11 @@ class Commands(Enum):
 class FilesService(ApiService):
     MAX_PARTS_PER_REQUEST = 4
 
-    def __init__(self, base_url, token):
-        super().__init__(base_url, token)
+    def __init__(self, base_url, token, **kwargs):
+        super().__init__(base_url, token, **kwargs)
 
     def _initiate_upload(self, file_name, device_path, app_bundle_id=None):
-        url = f'{self.base_url}/files'
+        url = self._url('files')
         data = {'filename': file_name,
                 'path': device_path
                 }
@@ -55,28 +55,28 @@ class FilesService(ApiService):
         return response.json()
 
     def _presigned_url(self, file_id, upload_id, key, part_numbers):
-        url = f'{self.base_url}/files/{file_id}/pre-sign'
-        data = {'key': key, 
-                'uploadId': upload_id, 
-                'partNumbers': part_numbers 
+        url = self._url('files', file_id, 'pre-sign')
+        data = {'key': key,
+                'uploadId': upload_id,
+                'partNumbers': part_numbers
                 }
-        
+
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
-        
+
         return response.json()
 
     def _complete_upload(self, file_id, upload_id, key, parts, conflict_strategy='replace'):
-        url = f'{self.base_url}/files/{file_id}/complete'
-        data = {'key': key, 
-                'uploadId': upload_id, 
-                'parts': parts, 
+        url = self._url('files', file_id, 'complete')
+        data = {'key': key,
+                'uploadId': upload_id,
+                'parts': parts,
                 'conflictStrategy': conflict_strategy
                 }
-        
+
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
-        
+
         return response.json()
 
     def upload_file(self, file_path, device_path, silent, app_bundle_id=None):
@@ -113,96 +113,64 @@ class FilesService(ApiService):
             return complete_response
 
     def get_all_files(self):
-        url = f'{self.base_url}/files?per_page=20'
+        url = self._url('files') + '?per_page=20'
+        return self._get_all_pages(url)
 
-        response = self.client.get(url, headers=self.headers)
-        response.raise_for_status()
-
-        json = response.json()
-
-        data = json['data']
-
-        if json['links']:
-            while json['links']['next']:
-                response = self.client.get(json['links']['next'], headers=self.headers)
-                response.raise_for_status()
-                json = response.json()
-
-                data += json['data']
-
-        return data
-    
     def get_file_detail(self, file_id):
-        url = f'{self.base_url}/files/{file_id}'
+        url = self._url('files', file_id)
 
         response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
-    
+
     def get_all_device_files(self, device_id):
-        url = f'{self.base_url}/devices/{device_id}/files?per_page=20'
+        url = self._url('devices', device_id, 'files') + '?per_page=20'
+        return self._get_all_pages(url)
 
-        response = self.client.get(url, headers=self.headers)
-        response.raise_for_status()
-
-        json = response.json()
-
-        data = json['data']
-
-        if json['links']:
-            while json['links']['next']:
-                response = self.client.get(json['links']['next'], headers=self.headers)
-                response.raise_for_status()
-                json = response.json()
-
-                data += json['data']
-
-        return data
-    
     def assign_file_to_device(self, file_id, device_id):
-        url = f'{self.base_url}/devices/{device_id}/files'
+        url = self._url('devices', device_id, 'files')
         data = {'fileId': file_id }
-        
+
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
-        
-        return response.json()
+
+        return self._parse_response(response)
 
     def remove_file_from_device(self, file_id, device_id):
-        url = f'{self.base_url}/devices/{device_id}/files'
+        url = self._url('devices', device_id, 'files')
         data = {'fileId': file_id }
-        
+
         response = self.client.delete(url, json=data, headers=self.headers)
         response.raise_for_status()
-        
-        return response.json()
+
+        return self._parse_response(response)
 
     def assign_file_to_group(self, file_id, group_id):
-        url = f'{self.base_url}/groups/{group_id}/files'
+        url = self._url('groups', group_id, 'files')
         data = { 'fileId': file_id }
 
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
-        
-        return response.json()
+
+        return self._parse_response(response)
 
     def remove_file_from_group(self, file_id, group_id):
-        url = f'{self.base_url}/groups/{group_id}/files'
+        url = self._url('groups', group_id, 'files')
         data = { 'fileId': file_id }
 
         response = self.client.delete(url, json=data, headers=self.headers)
         response.raise_for_status()
-        
-        return response.json()
-    
+
+        return self._parse_response(response)
+
 class CommandHandler:
     def __init__(self, args):
         self.args = args
         self.service = FilesService(self.args.url, self.args.token)
 
     def run(self):
-        if self.args.files_command == Commands.LIST.value:            
+        if self.args.files_command == Commands.LIST.value:
             files_list = self.service.get_all_files()
             print_formatted(self.args.format, files_list)
 
@@ -229,4 +197,3 @@ class CommandHandler:
 
         elif self.args.files_command == Commands.GROUP_REMOVE.value:
             self.service.remove_file_from_group(self.args.file_id, self.args.group_id)
-

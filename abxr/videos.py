@@ -20,7 +20,7 @@ class Commands(Enum):
     UPLOAD = "upload"
     ATTACH_TAGS = "attach_tags"
     DETACH_TAGS = "detach_tags"
-    
+
 class VideosService(ApiService):
     MAX_PARTS_PER_REQUEST = 4
 
@@ -28,8 +28,8 @@ class VideosService(ApiService):
         super().__init__(base_url, token)
 
     def _initiate_upload(self, file_name, video_type, video_mapping, video_display, video_packing, audio_encoding):
-        url = f'{self.base_url}/videos'
-        
+        url = self._url('videos')
+
         data = {
             'filename': file_name,
             'videoType': video_type,
@@ -38,35 +38,35 @@ class VideosService(ApiService):
             'videoPacking': video_packing,
             'audioEncoding': audio_encoding
         }
-        
+
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
-        
+
         return response.json()
 
     def _presigned_url(self, video_id, upload_id, key, part_numbers):
-        url = f'{self.base_url}/videos/{video_id}/pre-sign'
+        url = self._url('videos', video_id, 'pre-sign')
         data = {
-            'key': key, 
-                'uploadId': upload_id, 
-                'partNumbers': part_numbers 
-                }
-        
+            'key': key,
+            'uploadId': upload_id,
+            'partNumbers': part_numbers
+        }
+
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
-        
+
         return response.json()
 
     def _complete_upload(self, video_id, upload_id, key, parts):
-        url = f'{self.base_url}/videos/{video_id}/complete'
-        data = {'key': key, 
-                'uploadId': upload_id, 
+        url = self._url('videos', video_id, 'complete')
+        data = {'key': key,
+                'uploadId': upload_id,
                 'parts': parts
                 }
-        
+
         response = self.client.post(url, json=data, headers=self.headers)
         response.raise_for_status()
-        
+
         return response.json()
 
     def upload_video(self, file_path, video_type, video_mapping, video_display, video_packing, audio_encoding, silent):
@@ -85,9 +85,9 @@ class VideosService(ApiService):
         with tqdm(total=file.get_size(), unit='B', unit_scale=True, desc=f'Uploading {file.file_name}', disable=silent) as pbar:
             for i in range(0, len(part_numbers), self.MAX_PARTS_PER_REQUEST):
                 part_numbers_slice = part_numbers[i:i + self.MAX_PARTS_PER_REQUEST]
-                
+
                 presigned_url_response = self._presigned_url(video_id, upload_id, key, part_numbers_slice)
-                
+
                 for item in presigned_url_response:
                     part_number = item['partNumber']
                     presigned_url = item['presignedUrl']
@@ -98,40 +98,24 @@ class VideosService(ApiService):
 
                     uploaded_parts += [{'partNumber': part_number, 'eTag': response.headers['ETag']}]
                     pbar.update(len(part))
-                
+
             complete_response = self._complete_upload(video_id, upload_id, key, uploaded_parts)
             return complete_response
-        
+
     def get_all_videos(self):
-        url = f'{self.base_url}/videos?per_page=20'
+        url = self._url('videos') + '?per_page=20'
+        return self._get_all_pages(url)
 
-        response = self.client.get(url, headers=self.headers)
-        response.raise_for_status()
-
-        json = response.json()
-
-        data = json['data']
-
-        if json['links']:
-            while json['links']['next']:
-                response = self.client.get(json['links']['next'], headers=self.headers)
-                response.raise_for_status()
-                json = response.json()
-
-                data += json['data']
-
-        return data
-    
     def get_video_detail(self, video_id):
-        url = f'{self.base_url}/videos/{video_id}'
+        url = self._url('videos', video_id)
 
         response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
-    
+
     def update_video(self, video_id, name, description, video_type, video_mapping, video_display, video_package, audio_encoding, tags):
-        url = f'{self.base_url}/videos/{video_id}'
+        url = self._url('videos', video_id)
 
         payload = {
             'name': name,
@@ -148,9 +132,9 @@ class VideosService(ApiService):
         response.raise_for_status()
 
         return response.json()
-    
+
     def add_tags_to_video(self, video_id, tags):
-        url = f'{self.base_url}/videos/{video_id}/tags/attach'
+        url = self._url('videos', video_id, 'tags', 'attach')
 
         payload = {
             'tags': tags
@@ -158,11 +142,11 @@ class VideosService(ApiService):
 
         response = self.client.patch(url, headers=self.headers, json=payload)
         response.raise_for_status()
-        
+
         return response.json()
 
     def remove_tags_to_video(self, video_id, tags):
-        url = f'{self.base_url}/videos/{video_id}/tags/detach'
+        url = self._url('videos', video_id, 'tags', 'detach')
 
         payload = {
             'tags': tags
@@ -170,9 +154,9 @@ class VideosService(ApiService):
 
         response = self.client.patch(url, headers=self.headers, json=payload)
         response.raise_for_status()
-        
+
         return response.json()
-    
+
 
 class CommandHandler:
     def __init__(self, args):
@@ -180,7 +164,7 @@ class CommandHandler:
         self.service = VideosService(self.args.url, self.args.token)
 
     def run(self):
-        if self.args.videos_command == Commands.LIST.value:            
+        if self.args.videos_command == Commands.LIST.value:
             videos_list = self.service.get_all_videos()
             print_formatted(self.args.format, videos_list)
 
@@ -201,4 +185,3 @@ class CommandHandler:
 
         elif self.args.videos_command == Commands.DETACH_TAGS.value:
             self.service.remove_tags_to_video(self.args.video_id, self.args.tags)
-

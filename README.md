@@ -23,7 +23,7 @@ pip install abxrcli
 ### The CLI tool accepts the following global options:
 `-u, --url`
 * Description: API Base URL
-* Default: https://api.xrdm.app/api/v2 (or the value of ABXR_API_URL environment variable)
+* Default: https://api.xrdm.app (or the value of ABXR_API_URL environment variable). The API version is auto-detected from the token.
 
 `-t, --token`
 * Description: API Token for authentication
@@ -293,6 +293,29 @@ These commands are used for device-related operations
     * `device_id`: The unique identifier for the device.
 * Description: Reboot a device immediately.
 
+
+### Organization Commands
+
+These commands retrieve organization-level information.
+
+#### Subcommands
+
+##### info
+* Usage:
+`abxr-cli org info`
+* Description: Get organization info connected to the current API token.
+
+
+### Token Commands
+
+These commands retrieve information about the current API token.
+
+#### Subcommands
+
+##### info
+* Usage:
+`abxr-cli token info`
+* Description: Get token metadata including the detected API version, associated organization, and permissions.
 
 
 ## CLI Usage Examples

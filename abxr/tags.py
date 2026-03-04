@@ -23,27 +23,11 @@ class TagsService(ApiService):
         super().__init__(base_url, token)
 
     def get_all_tags(self):
-        url = f'{self.base_url}/tags?per_page=20'
+        url = self._url('tags') + '?per_page=20'
+        return self._get_all_pages(url)
 
-        response = self.client.get(url, headers=self.headers)
-        response.raise_for_status()
-
-        json = response.json()
-
-        data = json['data']
-
-        if json['links']:
-            while json['links']['next']:
-                response = self.client.get(json['links']['next'], headers=self.headers)
-                response.raise_for_status()
-                json = response.json()
-
-                data += json['data']
-
-        return data
-    
     def create_tag(self, tag_name):
-        url = f'{self.base_url}/tags'
+        url = self._url('tags')
         payload = {
             "name": tag_name
         }
@@ -52,17 +36,17 @@ class TagsService(ApiService):
         response.raise_for_status()
 
         return response.json()
-    
+
     def get_tag_detail(self, tag_id):
-        url = f'{self.base_url}/tags/{tag_id}'
+        url = self._url('tags', tag_id)
 
         response = self.client.get(url, headers=self.headers)
         response.raise_for_status()
 
         return response.json()
-    
+
     def update_tag(self, tag_id, tag_name):
-        url = f'{self.base_url}/tags/{tag_id}'
+        url = self._url('tags', tag_id)
         payload = {
             "name": tag_name
         }
@@ -71,14 +55,14 @@ class TagsService(ApiService):
         response.raise_for_status()
 
         return response.json()
-    
+
     def delete_tag(self, tag_id):
-        url = f'{self.base_url}/tags/{tag_id}'
+        url = self._url('tags', tag_id)
 
         response = self.client.delete(url, headers=self.headers)
         response.raise_for_status()
 
-        return response.json()
+        return self._parse_response(response)
 
 class CommandHandler:
     def __init__(self, args):
@@ -86,7 +70,7 @@ class CommandHandler:
         self.service = TagsService(self.args.url, self.args.token)
 
     def run(self):
-        if self.args.tags_command == Commands.LIST.value:            
+        if self.args.tags_command == Commands.LIST.value:
             tags = self.service.get_all_tags()
             print_formatted(self.args.format, tags)
 
@@ -99,8 +83,8 @@ class CommandHandler:
             print_formatted(self.args.format, tag_detail)
 
         elif self.args.tags_command == Commands.UPDATE.value:
-            updated_tag = self.service.update_tag(self.args.id, self.args.name)
+            updated_tag = self.service.update_tag(self.args.tag_id, self.args.name)
             print_formatted(self.args.format, updated_tag)
 
         elif self.args.tags_command == Commands.DELETE.value:
-            self.service.delete_tag(self.args.id)
+            self.service.delete_tag(self.args.tag_id)

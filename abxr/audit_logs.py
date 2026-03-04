@@ -17,7 +17,7 @@ class AuditLogsService(ApiService):
         super().__init__(base_url, token)
 
     def get_all_audit_logs(self, search, start_time, end_time):
-        url = f'{self.base_url}/audit-logs?per_page=20'
+        url = self._url('audit-logs') + '?per_page=20'
 
         if search:
             url += f'&search={search}'
@@ -26,22 +26,7 @@ class AuditLogsService(ApiService):
         if end_time:
             url += f'&end_time={end_time}'
 
-        response = self.client.get(url, headers=self.headers)
-        response.raise_for_status()
-
-        json = response.json()
-
-        data = json['data']
-
-        if json['links']:
-            while json['links']['next']:
-                response = self.client.get(json['links']['next'], headers=self.headers)
-                response.raise_for_status()
-                json = response.json()
-
-                data += json['data']
-
-        return data
+        return self._get_all_pages(url)
 
 class CommandHandler:
     def __init__(self, args):
@@ -49,6 +34,6 @@ class CommandHandler:
         self.service = AuditLogsService(self.args.url, self.args.token)
 
     def run(self):
-        if self.args.audit_logs_command == Commands.LIST.value:            
+        if self.args.audit_logs_command == Commands.LIST.value:
             audit_logs = self.service.get_all_audit_logs(self.args.search, self.args.start_time, self.args.end_time)
             print_formatted(self.args.format, audit_logs)

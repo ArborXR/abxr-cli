@@ -165,3 +165,6 @@ STAGING_KEYS
 
 # Claude Code project instructions (user-specific)
 CLAUDE.md
+
+# GSD planning files
+.planning/
