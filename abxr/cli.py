@@ -267,9 +267,9 @@ def main():
     upload_system_app_parser.add_argument("app_type", help="Type of the system app (e.g., 'client', 'home')", type=str)
     upload_system_app_parser.add_argument("filename", help="Local path of the APK to upload", type=str)
     upload_system_app_parser.add_argument("--version_number", help="Version Number (APK can override this value)", type=str)
-    upload_system_app_parser.add_argument("--version_code", help="Version Code (required for OS app type)", type=int)
+    upload_system_app_parser.add_argument("--version_code", help="Version Code (required for 'os' app type only)", type=int)
     upload_system_app_parser.add_argument("-n", "--notes", help="Release Notes", type=str)
-    upload_system_app_parser.add_argument("--app_compatibility_name", help="Name of the app compatibility (e.g: armeabi-v7a)", type=str, required=True)
+    upload_system_app_parser.add_argument("--app_compatibility_name", help="App compatibility name (e.g: armeabi-v7a) (required)", type=str, required=True)
     upload_system_app_parser.add_argument("--release_channel_name", help="Name of the release channel to upload to. Omitting will default to Latest", type=str)
     
     # List Release Channels for System App
@@ -502,6 +502,18 @@ def main():
     except HTTPError as e:
         if e.response is not None and e.response.status_code == 401:
             print("Unauthorized: Invalid API Token.")
+            exit(1)
+        elif e.response is not None and e.response.status_code == 422:
+            try:
+                body = e.response.json()
+                message = body.get("message", "Validation Error")
+                print(f"Validation Error: {message}")
+                errors = body.get("errors", {})
+                for field, messages in errors.items():
+                    for msg in messages:
+                        print(f"  {field}: {msg}")
+            except (ValueError, KeyError):
+                print(f"HTTP Error: {e}")
             exit(1)
         else:
             print(f"HTTP Error: {e}")
