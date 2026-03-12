@@ -208,7 +208,7 @@ def main():
     # Upload a file
     upload_file_parser = files_subparsers.add_parser(FileCommands.UPLOAD.value, help="Upload a file")
     upload_file_parser.add_argument("filename", help="Local path of the file to upload", type=str)
-    upload_file_parser.add_argument("--device_path", help="Desired path of the file on the device", type=str, required=True)
+    upload_file_parser.add_argument("--device-path", "--device_path", help="Desired path of the file on the device", type=str, required=True)
 
     # List All Files Assigned to a Device
     files_device_list_parser = files_subparsers.add_parser(FileCommands.DEVICE_LIST.value, help="List files assigned to a device")
@@ -395,7 +395,7 @@ def main():
     app_bundles_upload_parser.add_argument("bundle_folder", help="Path to folder containing bundle files", type=str)
     app_bundles_upload_parser.add_argument("--version_number", help="Version number (APK can override this value)", type=str)
     app_bundles_upload_parser.add_argument("-n", "--notes", help="Release notes for the bundle", type=str)
-    app_bundles_upload_parser.add_argument("--device_path", help="Optional device path relative to /sdcard for bundle files", type=str)
+    app_bundles_upload_parser.add_argument("--device-path", "--device_path", help="Optional device path relative to /sdcard for bundle files", type=str)
     app_bundles_upload_parser.add_argument("-s", "--silent", help="Suppress progress bars and other output", action="store_true")
 
     # Release channel options (mutually exclusive)
@@ -417,7 +417,7 @@ def main():
     app_bundles_resume_parser.add_argument("bundle_id", help="ID of the bundle to resume", type=str)
     app_bundles_resume_parser.add_argument("apk_path", help="Path to APK file", type=str)
     app_bundles_resume_parser.add_argument("folder_path", help="Path to folder with bundle files", type=str)
-    app_bundles_resume_parser.add_argument("--device_path", help="Optional device path relative to /sdcard for bundle files (must match original upload)", type=str)
+    app_bundles_resume_parser.add_argument("--device-path", "--device_path", help="Optional device path relative to /sdcard for bundle files (must match original upload)", type=str)
     app_bundles_resume_parser.add_argument("-s", "--silent", help="Suppress progress bars and other output", action="store_true")
 
     # Update an app bundle's label
@@ -432,7 +432,7 @@ def main():
     app_bundles_create_from_build_parser.add_argument("build_id", help="ID of the existing app build/version", type=str)
     app_bundles_create_from_build_parser.add_argument("bundle_folder", help="Path to folder containing bundle files", type=str)
     app_bundles_create_from_build_parser.add_argument("app_id", help="ID of the app (needed for file deduplication)", type=str)
-    app_bundles_create_from_build_parser.add_argument("--device_path", help="Optional device path relative to /sdcard for bundle files", type=str)
+    app_bundles_create_from_build_parser.add_argument("--device-path", "--device_path", help="Optional device path relative to /sdcard for bundle files", type=str)
     app_bundles_create_from_build_parser.add_argument("-s", "--silent", help="Suppress progress bars and other output", action="store_true")
 
     # Release channel options (mutually exclusive)
