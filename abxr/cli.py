@@ -269,7 +269,7 @@ def main():
     upload_system_app_parser.add_argument("--version_number", help="Version Number (APK can override this value; required semver for 'os' app type)", type=str)
     upload_system_app_parser.add_argument("--version_code", help="Version Code (required for 'os' app type only)", type=int)
     upload_system_app_parser.add_argument("-n", "--notes", help="Release Notes", type=str)
-    upload_system_app_parser.add_argument("--app_compatibility_name", help="App compatibility name (e.g: armeabi-v7a) (required)", type=str, required=True)
+    upload_system_app_parser.add_argument("--app_compatibility_name", help="App compatibility name (e.g: armeabi-v7a, PICO 4 Enterprise) (required)", type=str, required=True)
     upload_system_app_parser.add_argument("--release_channel_name", help="Name of the release channel to upload to. Omitting will default to Latest", type=str)
     
     # List Release Channels for System App
