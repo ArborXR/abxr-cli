@@ -208,7 +208,7 @@ def main():
     # Upload a file
     upload_file_parser = files_subparsers.add_parser(FileCommands.UPLOAD.value, help="Upload a file")
     upload_file_parser.add_argument("filename", help="Local path of the file to upload", type=str)
-    upload_file_parser.add_argument("--device_path", help="Desired path of the file on the device", type=str, required=True)
+    upload_file_parser.add_argument("--device-path", "--device_path", help="Desired path of the file on the device", type=str, required=True)
 
     # List All Files Assigned to a Device
     files_device_list_parser = files_subparsers.add_parser(FileCommands.DEVICE_LIST.value, help="List files assigned to a device")
@@ -266,10 +266,10 @@ def main():
     upload_system_app_parser = system_apps_subparsers.add_parser(SystemAppCommands.UPLOAD.value, help="Upload a system app")
     upload_system_app_parser.add_argument("app_type", help="Type of the system app (e.g., 'client', 'home')", type=str)
     upload_system_app_parser.add_argument("filename", help="Local path of the APK to upload", type=str)
-    upload_system_app_parser.add_argument("--version_number", help="Version Number (APK can override this value)", type=str)
-    upload_system_app_parser.add_argument("--version_code", help="Version Code (required for OS app type)", type=int)
+    upload_system_app_parser.add_argument("--version_number", help="Version Number (APK can override this value; required semver for 'os' app type)", type=str)
+    upload_system_app_parser.add_argument("--version_code", help="Version Code (required for 'os' app type only)", type=int)
     upload_system_app_parser.add_argument("-n", "--notes", help="Release Notes", type=str)
-    upload_system_app_parser.add_argument("--app_compatibility_name", help="Name of the app compatibility (e.g: armeabi-v7a)", type=str, required=True)
+    upload_system_app_parser.add_argument("--app_compatibility_name", help="App compatibility name (e.g: armeabi-v7a, PICO 4 Enterprise) (required)", type=str, required=True)
     upload_system_app_parser.add_argument("--release_channel_name", help="Name of the release channel to upload to. Omitting will default to Latest", type=str)
     
     # List Release Channels for System App
@@ -395,7 +395,7 @@ def main():
     app_bundles_upload_parser.add_argument("bundle_folder", help="Path to folder containing bundle files", type=str)
     app_bundles_upload_parser.add_argument("--version_number", help="Version number (APK can override this value)", type=str)
     app_bundles_upload_parser.add_argument("-n", "--notes", help="Release notes for the bundle", type=str)
-    app_bundles_upload_parser.add_argument("--device_path", help="Optional device path relative to /sdcard for bundle files", type=str)
+    app_bundles_upload_parser.add_argument("--device-path", "--device_path", help="Optional device path relative to /sdcard for bundle files", type=str)
     app_bundles_upload_parser.add_argument("-s", "--silent", help="Suppress progress bars and other output", action="store_true")
 
     # Release channel options (mutually exclusive)
@@ -417,7 +417,7 @@ def main():
     app_bundles_resume_parser.add_argument("bundle_id", help="ID of the bundle to resume", type=str)
     app_bundles_resume_parser.add_argument("apk_path", help="Path to APK file", type=str)
     app_bundles_resume_parser.add_argument("folder_path", help="Path to folder with bundle files", type=str)
-    app_bundles_resume_parser.add_argument("--device_path", help="Optional device path relative to /sdcard for bundle files (must match original upload)", type=str)
+    app_bundles_resume_parser.add_argument("--device-path", "--device_path", help="Optional device path relative to /sdcard for bundle files (must match original upload)", type=str)
     app_bundles_resume_parser.add_argument("-s", "--silent", help="Suppress progress bars and other output", action="store_true")
 
     # Update an app bundle's label
@@ -432,7 +432,7 @@ def main():
     app_bundles_create_from_build_parser.add_argument("build_id", help="ID of the existing app build/version", type=str)
     app_bundles_create_from_build_parser.add_argument("bundle_folder", help="Path to folder containing bundle files", type=str)
     app_bundles_create_from_build_parser.add_argument("app_id", help="ID of the app (needed for file deduplication)", type=str)
-    app_bundles_create_from_build_parser.add_argument("--device_path", help="Optional device path relative to /sdcard for bundle files", type=str)
+    app_bundles_create_from_build_parser.add_argument("--device-path", "--device_path", help="Optional device path relative to /sdcard for bundle files", type=str)
     app_bundles_create_from_build_parser.add_argument("-s", "--silent", help="Suppress progress bars and other output", action="store_true")
 
     # Release channel options (mutually exclusive)
@@ -502,6 +502,18 @@ def main():
     except HTTPError as e:
         if e.response is not None and e.response.status_code == 401:
             print("Unauthorized: Invalid API Token.")
+            exit(1)
+        elif e.response is not None and e.response.status_code == 422:
+            try:
+                body = e.response.json()
+                message = body.get("message", "Validation Error")
+                print(f"Validation Error: {message}")
+                errors = body.get("errors", {})
+                for field, messages in errors.items():
+                    for msg in messages:
+                        print(f"  {field}: {msg}")
+            except (ValueError, KeyError):
+                print(f"HTTP Error: {e}")
             exit(1)
         else:
             print(f"HTTP Error: {e}")
