@@ -266,7 +266,7 @@ def main():
     upload_system_app_parser = system_apps_subparsers.add_parser(SystemAppCommands.UPLOAD.value, help="Upload a system app")
     upload_system_app_parser.add_argument("app_type", help="Type of the system app (e.g., 'client', 'home')", type=str)
     upload_system_app_parser.add_argument("filename", help="Local path of the APK to upload", type=str)
-    upload_system_app_parser.add_argument("--version_number", help="Version Number (APK can override this value)", type=str)
+    upload_system_app_parser.add_argument("--version_number", help="Version Number (APK can override this value; required semver for 'os' app type)", type=str)
     upload_system_app_parser.add_argument("--version_code", help="Version Code (required for 'os' app type only)", type=int)
     upload_system_app_parser.add_argument("-n", "--notes", help="Release Notes", type=str)
     upload_system_app_parser.add_argument("--app_compatibility_name", help="App compatibility name (e.g: armeabi-v7a) (required)", type=str, required=True)
