@@ -81,7 +81,9 @@ def main():
     release_channel_set_version_parser = apps_subparsers.add_parser(AppCommands.RELEASE_CHANNEL_SET_VERSION.value, help="Set version for a release channel")
     release_channel_set_version_parser.add_argument("app_id", help="ID of the app", type=str)
     release_channel_set_version_parser.add_argument("--release_channel_id", help="ID of the release channel", type=str, required=True)
-    release_channel_set_version_parser.add_argument("--version_id", help="ID of the version", type=str, required=True)
+    version_group = release_channel_set_version_parser.add_mutually_exclusive_group(required=True)
+    version_group.add_argument("--version_id", help="ID of the version (app build)", type=str)
+    version_group.add_argument("--bundle_id", help="ID of the app bundle", type=str)
 
     # Upload and Create Version
     create_version_parser = apps_subparsers.add_parser(AppCommands.UPLOAD.value, help="Upload a new version of an app")

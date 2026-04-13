@@ -208,10 +208,10 @@ class AppsService(ApiService):
 
         return response.json()
 
-    def set_version_for_release_channel(self, app_id, release_channel_id, version_id):
+    def set_version_for_release_channel(self, app_id, release_channel_id, version_id=None, bundle_id=None):
         url = self._url('apps', app_id, 'release-channels', release_channel_id)
 
-        data = {'versionId': version_id}
+        data = {'bundleId': bundle_id} if bundle_id else {'versionId': version_id}
 
         response = self.client.put(url, json=data, headers=self.headers)
         response.raise_for_status()
@@ -384,7 +384,7 @@ class CommandHandler:
             print_formatted(self.args.format, versions)
 
         elif self.args.apps_command == Commands.RELEASE_CHANNEL_SET_VERSION.value:
-            self.service.set_version_for_release_channel(self.args.app_id, self.args.release_channel_id, self.args.version_id)
+            self.service.set_version_for_release_channel(self.args.app_id, self.args.release_channel_id, version_id=self.args.version_id, bundle_id=self.args.bundle_id)
 
         elif self.args.apps_command == Commands.UPLOAD.value:
             # Check if file is a ZIP - if so, extract and convert to bundle or regular upload
