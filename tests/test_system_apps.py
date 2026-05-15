@@ -162,7 +162,8 @@ class TestFullSystemAppUpload:
         svc.client.post.side_effect = [
             make_response({"versionId": "v1", "uploadId": "u1", "key": "k1"}),
             make_response([{"partNumber": 1, "presignedUrl": "https://s3/1"}]),
-            make_response({"id": "v1", "status": "available"}),
+            # Internal API returns UPPERCASE status enum names, not v3 lowercase
+            make_response({"id": "v1", "status": "AVAILABLE"}),
         ]
         svc.client.put.return_value = make_response({}, headers={"ETag": '"e1"'})
 
@@ -171,7 +172,7 @@ class TestFullSystemAppUpload:
             "2.0.0", 200, "release notes", silent=True,
         )
 
-        assert result == {"id": "v1", "status": "available"}
+        assert result == {"id": "v1", "status": "AVAILABLE"}
 
         # All POSTs hit /api/internal/...
         for call in svc.client.post.call_args_list:
