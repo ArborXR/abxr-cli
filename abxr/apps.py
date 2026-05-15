@@ -33,9 +33,6 @@ class Commands(Enum):
 class AppsService(ApiService):
     MAX_PARTS_PER_REQUEST = 4
 
-    def __init__(self, base_url, token, **kwargs):
-        super().__init__(base_url, token, **kwargs)
-
     def _initiate_upload(self, app_id, file_name, app_build_type="standalone", release_channel_id=None, new_release_channel_title=None):
         url = self._url('apps', app_id, 'versions')
         data = {'filename': file_name}
@@ -122,14 +119,14 @@ class AppsService(ApiService):
             status = None
 
             if wait:
-                while status != 'AVAILABLE' and total_time_sec < max_wait_time_sec:
+                while status != 'available' and total_time_sec < max_wait_time_sec:
                     versions = self.get_all_versions_for_app(app_id)
                     version = next((v for v in versions if v['id'] == version_id), None)
                     if version:
-                        status = self._normalize_status(version['status'])
-                        if status == 'AVAILABLE':
+                        status = version['status']
+                        if status == 'available':
                             break
-                        elif status == 'ERROR':
+                        elif status == 'error':
                             raise Exception(f"Upload failed server processing for version {version_id} of app {app_id}.")
                     else:
                         raise Exception(f"Version {version_id} not found for uploaded app {app_id}.")
@@ -164,11 +161,10 @@ class AppsService(ApiService):
         return self._get_all_pages(url)
 
     def get_versions_by_sha256(self, app_id, sha256_hashes):
-        """Query app versions by SHA-256 hashes, return only AVAILABLE versions"""
+        """Query app versions by SHA-256 hashes, return only available versions"""
         if not sha256_hashes:
             return []
 
-        # Build query string with sha256[] array parameters
         query_params = '&'.join([f'sha256[]={hash}' for hash in sha256_hashes])
         url = self._url('apps', app_id, 'versions') + '?' + query_params
 
@@ -178,8 +174,7 @@ class AppsService(ApiService):
         json_data = response.json()
         data = json_data.get('data', [])
 
-        # Filter for AVAILABLE status only
-        return [v for v in data if self._normalize_status(v.get('status')) == 'AVAILABLE']
+        return [v for v in data if v.get('status') == 'available']
 
     def get_files_by_sha512(self, app_id, sha512_hashes):
         """Query app files by SHA-512 hashes"""

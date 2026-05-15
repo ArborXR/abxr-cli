@@ -26,9 +26,6 @@ class Commands(Enum):
 class FilesService(ApiService):
     MAX_PARTS_PER_REQUEST = 4
 
-    def __init__(self, base_url, token, **kwargs):
-        super().__init__(base_url, token, **kwargs)
-
     def _initiate_upload(self, file_name, device_path, app_bundle_id=None):
         url = self._url('files')
         data = {'filename': file_name,
