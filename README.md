@@ -23,7 +23,7 @@ pip install abxrcli
 ### The CLI tool accepts the following global options:
 `-u, --url`
 * Description: API Base URL
-* Default: https://api.xrdm.app (or the value of ABXR_API_URL environment variable). The API version is auto-detected from the token.
+* Default: https://api.xrdm.app (or the value of ABXR_API_URL environment variable). The CLI targets MDM API v3.
 
 `-t, --token`
 * Description: API Token for authentication
@@ -304,18 +304,6 @@ These commands retrieve organization-level information.
 * Usage:
 `abxr-cli org info`
 * Description: Get organization info connected to the current API token.
-
-
-### Token Commands
-
-These commands retrieve information about the current API token.
-
-#### Subcommands
-
-##### info
-* Usage:
-`abxr-cli token info`
-* Description: Get token metadata including the detected API version, associated organization, and permissions.
 
 
 ## CLI Usage Examples

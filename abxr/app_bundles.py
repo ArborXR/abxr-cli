@@ -33,9 +33,6 @@ class Commands(Enum):
 class AppBundlesService(ApiService):
     MAX_PARTS_PER_REQUEST = 4
 
-    def __init__(self, base_url, token, **kwargs):
-        super().__init__(base_url, token, **kwargs)
-
     def calculate_sha256(self, file_path):
         """Calculate SHA-256 hash of a file (for builds)"""
         sha256_hash = hashlib.sha256()
@@ -138,9 +135,9 @@ class AppBundlesService(ApiService):
         mismatches = []
 
         for bundle_file in bundle_files:
-            file_name = bundle_file.get('name') or bundle_file.get('filename')  # v2: 'name', v3: 'filename'
+            file_name = bundle_file['filename']
             bundle_location = bundle_file.get('location')
-            bundle_hash = self._get_hash(bundle_file, 'sha512')
+            bundle_hash = bundle_file['checksum']['value']
 
             # Find local file with matching name
             local_file = None
@@ -257,7 +254,7 @@ class AppBundlesService(ApiService):
         if not file_hashes:
             return existing_files_map
 
-        apps_service = AppsService(self.base_url, self.headers['Authorization'].replace('Bearer ', ''), _api_version=self._api_version)
+        apps_service = AppsService(self.base_url, self.headers['Authorization'].replace('Bearer ', ''))
 
         if not silent:
             print(f"Checking for existing files...")
@@ -269,8 +266,8 @@ class AppBundlesService(ApiService):
             existing_files_batch = apps_service.get_files_by_sha512(app_id, batch_hashes)
 
             for file_data in existing_files_batch:
-                file_hash = self._get_hash(file_data, 'sha512')
-                file_name = file_data.get('name') or file_data.get('filename')  # v2: 'name', v3: 'filename'
+                file_hash = file_data['checksum']['value']
+                file_name = file_data['filename']
                 # Match by hash AND filename for safety
                 for file_path, path_hash in file_hashes.items():
                     if path_hash == file_hash and file_path.name == file_name:
@@ -294,7 +291,7 @@ class AppBundlesService(ApiService):
         if not silent:
             print(f"Uploading {len(files_to_upload)} new file(s)...")
 
-        files_service = FilesService(self.base_url, self.headers['Authorization'].replace('Bearer ', ''), _api_version=self._api_version)
+        files_service = FilesService(self.base_url, self.headers['Authorization'].replace('Bearer ', ''))
 
         for file_path in files_to_upload:
             rel_path = file_path.relative_to(folder)
@@ -439,7 +436,7 @@ class AppBundlesService(ApiService):
         all_files = list(file_hashes.keys())
 
         # Query for existing resources
-        apps_service = AppsService(self.base_url, self.headers['Authorization'].replace('Bearer ', ''), _api_version=self._api_version)
+        apps_service = AppsService(self.base_url, self.headers['Authorization'].replace('Bearer ', ''))
 
         if not silent:
             print(f"Checking for existing build...")
@@ -578,7 +575,7 @@ class AppBundlesService(ApiService):
 
         # Validate build matches
         bundle_build = bundle.get('appBuild', {})
-        bundle_build_hash = self._get_hash(bundle_build, 'sha256')
+        bundle_build_hash = bundle_build.get('checksum', {}).get('value')
 
         if not bundle_build_hash:
             raise ValueError("Bundle does not have an associated build")
@@ -608,7 +605,7 @@ class AppBundlesService(ApiService):
                 print(f"All existing files verified")
 
         # Determine missing files
-        bundle_file_hashes = {self._get_hash(f, 'sha512') for f in bundle_files if self._get_hash(f, 'sha512')}
+        bundle_file_hashes = {f['checksum']['value'] for f in bundle_files if f.get('checksum')}
         files_to_upload = [path for path, hash in file_hashes.items()
                           if hash not in bundle_file_hashes]
 

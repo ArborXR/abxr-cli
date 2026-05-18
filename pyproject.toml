@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "abxrcli"
-version = "0.17.1"
+version = "1.0.0"
 description = "ArborXR CLI"
 readme = "README.md"
-authors = [{ name = "Peter Peterson", email = "peter@arborxr.com" }]
+authors = [{ name = "Brian Rice", email = "brian@arborxr.com" }]
 
 dependencies = [
     "setuptools",
@@ -16,7 +16,14 @@ dependencies = [
     "pyyaml"
 ]
 
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-mock"
+]
+
 [project.scripts]
 abxr-cli = "abxr.cli:main"
 
-
+[tool.pytest.ini_options]
+testpaths = ["tests"]

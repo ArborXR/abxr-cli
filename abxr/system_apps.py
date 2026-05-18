@@ -23,6 +23,12 @@ class Commands(Enum):
 
 
 class SystemAppsService(ApiService):
+    """System-app endpoints under /api/internal/.
+
+    Note: the internal API returns UPPERCASE status enum names (AVAILABLE,
+    UPLOADED, ERROR), not the lowercase v3 values used by the public API.
+    Anything that compares against status strings here must match accordingly.
+    """
     MAX_PARTS_PER_REQUEST = 4
 
     def __init__(self, base_url, token):
