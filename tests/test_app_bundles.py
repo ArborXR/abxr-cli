@@ -39,6 +39,102 @@ class TestDevicePathComputation:
         f.touch()
         assert svc._compute_device_path(f, tmp_path, "myapp/config") == "/sdcard/myapp/config/data"
 
+    def test_main_obb_routed_to_canonical_path(self, mocker, tmp_path):
+        svc = _service(mocker)
+        f = tmp_path / "main.123.com.example.testapp.obb"
+        f.touch()
+        assert svc._compute_device_path(f, tmp_path) == "/sdcard/Android/obb/com.example.testapp"
+
+    def test_patch_obb_routed_to_canonical_path(self, mocker, tmp_path):
+        svc = _service(mocker)
+        f = tmp_path / "patch.123.com.example.testapp.obb"
+        f.touch()
+        assert svc._compute_device_path(f, tmp_path) == "/sdcard/Android/obb/com.example.testapp"
+
+    def test_obb_in_subdir_ignores_folder_layout(self, mocker, tmp_path):
+        svc = _service(mocker)
+        (tmp_path / "extras").mkdir()
+        f = tmp_path / "extras" / "main.1.com.example.app.obb"
+        f.touch()
+        assert svc._compute_device_path(f, tmp_path) == "/sdcard/Android/obb/com.example.app"
+
+    def test_obb_bypasses_base_path(self, mocker, tmp_path):
+        svc = _service(mocker)
+        f = tmp_path / "main.7.com.foo.bar.obb"
+        f.touch()
+        assert svc._compute_device_path(f, tmp_path, "custom/path") == "/sdcard/Android/obb/com.foo.bar"
+
+    def test_misnamed_obb_falls_back_with_warning(self, mocker, tmp_path, capsys):
+        svc = _service(mocker)
+        f = tmp_path / "weird.obb"
+        f.touch()
+        assert svc._compute_device_path(f, tmp_path) == "/sdcard"
+        assert "does not match the expected naming convention" in capsys.readouterr().out
+
+    def test_obb_with_non_numeric_version_falls_back(self, mocker, tmp_path, capsys):
+        svc = _service(mocker)
+        f = tmp_path / "main.notanumber.com.foo.bar.obb"
+        f.touch()
+        assert svc._compute_device_path(f, tmp_path) == "/sdcard"
+        assert "does not match the expected naming convention" in capsys.readouterr().out
+
+    def test_obb_with_single_segment_package_falls_back(self, mocker, tmp_path, capsys):
+        svc = _service(mocker)
+        f = tmp_path / "main.1.foo.obb"
+        f.touch()
+        assert svc._compute_device_path(f, tmp_path) == "/sdcard"
+        assert "does not match the expected naming convention" in capsys.readouterr().out
+
+
+class TestObbPackageConsistency:
+    def test_no_warning_for_single_package_with_main_and_patch(self, mocker, tmp_path, capsys):
+        svc = _service(mocker)
+        files = [
+            tmp_path / "main.1.com.example.app.obb",
+            tmp_path / "patch.1.com.example.app.obb",
+        ]
+        for f in files:
+            f.touch()
+        svc._warn_on_mixed_obb_packages(files)
+        out = capsys.readouterr().out
+        assert "multiple packages" not in out
+
+    def test_warns_when_obbs_declare_different_packages(self, mocker, tmp_path, capsys):
+        svc = _service(mocker)
+        files = [
+            tmp_path / "main.1.com.foo.app.obb",
+            tmp_path / "main.1.com.bar.app.obb",
+        ]
+        for f in files:
+            f.touch()
+        svc._warn_on_mixed_obb_packages(files)
+        out = capsys.readouterr().out
+        assert "multiple packages" in out
+        assert "com.foo.app" in out
+        assert "com.bar.app" in out
+        assert "main.1.com.foo.app.obb" in out
+        assert "main.1.com.bar.app.obb" in out
+
+    def test_misnamed_obb_does_not_count_as_separate_package(self, mocker, tmp_path, capsys):
+        svc = _service(mocker)
+        files = [
+            tmp_path / "main.1.com.example.app.obb",
+            tmp_path / "weird.obb",
+        ]
+        for f in files:
+            f.touch()
+        svc._warn_on_mixed_obb_packages(files)
+        out = capsys.readouterr().out
+        assert "multiple packages" not in out
+
+    def test_no_obbs_at_all(self, mocker, tmp_path, capsys):
+        svc = _service(mocker)
+        files = [tmp_path / "config.json", tmp_path / "data.bin"]
+        for f in files:
+            f.touch()
+        svc._warn_on_mixed_obb_packages(files)
+        assert capsys.readouterr().out == ""
+
 
 class TestValidateBundleFilesMatch:
     def test_extracts_filename_and_checksum_from_v3_shape(self, mocker, tmp_path):
