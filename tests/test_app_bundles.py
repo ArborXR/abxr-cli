@@ -85,6 +85,15 @@ class TestDevicePathComputation:
         assert svc._compute_device_path(f, tmp_path) == "/sdcard"
         assert "does not match the expected naming convention" in capsys.readouterr().out
 
+    def test_uppercase_extension_treated_as_non_obb(self, mocker, tmp_path, capsys):
+        # Android's OBB loader is case-sensitive; only lowercase .obb counts.
+        # A file with uppercase .OBB should get the default path with no warning.
+        svc = _service(mocker)
+        f = tmp_path / "main.1.com.example.app.OBB"
+        f.touch()
+        assert svc._compute_device_path(f, tmp_path) == "/sdcard"
+        assert capsys.readouterr().out == ""
+
 
 class TestObbPackageConsistency:
     def test_no_warning_for_single_package_with_main_and_patch(self, mocker, tmp_path, capsys):
@@ -130,6 +139,17 @@ class TestObbPackageConsistency:
     def test_no_obbs_at_all(self, mocker, tmp_path, capsys):
         svc = _service(mocker)
         files = [tmp_path / "config.json", tmp_path / "data.bin"]
+        for f in files:
+            f.touch()
+        svc._warn_on_mixed_obb_packages(files)
+        assert capsys.readouterr().out == ""
+
+    def test_uppercase_obb_extension_does_not_count(self, mocker, tmp_path, capsys):
+        svc = _service(mocker)
+        files = [
+            tmp_path / "main.1.com.example.app.obb",
+            tmp_path / "main.1.com.other.app.OBB",
+        ]
         for f in files:
             f.touch()
         svc._warn_on_mixed_obb_packages(files)

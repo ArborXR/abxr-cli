@@ -206,7 +206,9 @@ class AppBundlesService(ApiService):
             OBB files bypass `base_path` and folder layout and are routed to
             "/sdcard/Android/obb/{package_name}" parsed from the filename.
         """
-        if file_path.suffix.lower() == '.obb':
+        # Match the regex's case-sensitivity: Android's OBB loader only
+        # reads files with a lowercase .obb extension.
+        if file_path.suffix == '.obb':
             obb_path = self._obb_device_path(file_path)
             if obb_path is not None:
                 return obb_path
@@ -425,7 +427,7 @@ class AppBundlesService(ApiService):
         """
         packages = {}
         for file_path in all_files:
-            if file_path.suffix.lower() != '.obb':
+            if file_path.suffix != '.obb':
                 continue
             match = _OBB_FILENAME_PATTERN.match(file_path.name)
             if not match:
