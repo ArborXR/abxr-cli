@@ -6,6 +6,7 @@
 
 import os
 import hashlib
+import re
 from tqdm import tqdm
 import time
 from pathlib import Path
@@ -19,6 +20,12 @@ from abxr.formats import DataOutputFormats
 from abxr.output import print_formatted
 from abxr.apps import AppsService
 from abxr.files import FilesService
+
+# Android OBB filename convention: {main|patch}.{version_code}.{package_name}.obb
+# Package name must have at least two segments separated by dots (e.g. com.example.app).
+_OBB_FILENAME_PATTERN = re.compile(
+    r'^(?:main|patch)\.\d+\.([a-zA-Z][\w]*(?:\.[a-zA-Z][\w]*)+)\.obb$'
+)
 
 class Commands(Enum):
     LIST = "list"             # List app bundles for an app
@@ -170,6 +177,22 @@ class AppBundlesService(ApiService):
             error_msg += "\nTo create a new bundle with these changes, use the upload command."
             raise ValueError(error_msg)
 
+    def _obb_device_path(self, file_path):
+        """Return the canonical /sdcard/Android/obb/{package_name} path for an OBB file.
+
+        Returns None (and prints a warning) when the filename does not match the
+        Android OBB naming convention.
+        """
+        match = _OBB_FILENAME_PATTERN.match(file_path.name)
+        if not match:
+            print(
+                f"Warning: OBB file '{file_path.name}' does not match the expected naming "
+                f"convention '{{main|patch}}.{{version_code}}.{{package_name}}.obb'. "
+                f"Skipping auto-correction; the bundle may fail with 'invalid-obb-path'."
+            )
+            return None
+        return f"/sdcard/Android/obb/{match.group(1)}"
+
     def _compute_device_path(self, file_path, folder, base_path=None):
         """Compute /sdcard device path for a file relative to folder root
 
@@ -179,8 +202,17 @@ class AppBundlesService(ApiService):
             base_path: Optional base path relative to /sdcard (e.g., "myapp/config")
 
         Returns:
-            Device path string (e.g., "/sdcard" or "/sdcard/data/cache" or "/sdcard/myapp/config/data")
+            Device path string (e.g., "/sdcard" or "/sdcard/data/cache" or "/sdcard/myapp/config/data").
+            OBB files bypass `base_path` and folder layout and are routed to
+            "/sdcard/Android/obb/{package_name}" parsed from the filename.
         """
+        # Match the regex's case-sensitivity: Android's OBB loader only
+        # reads files with a lowercase .obb extension.
+        if file_path.suffix == '.obb':
+            obb_path = self._obb_device_path(file_path)
+            if obb_path is not None:
+                return obb_path
+
         rel_path = file_path.relative_to(folder)
         rel_dir = rel_path.parent
 
@@ -383,7 +415,34 @@ class AppBundlesService(ApiService):
         for file_path in all_files:
             file_hashes[file_path] = self.calculate_sha512(str(file_path))
 
+        self._warn_on_mixed_obb_packages(all_files)
+
         return folder, file_hashes
+
+    def _warn_on_mixed_obb_packages(self, all_files):
+        """Warn when bundle OBBs declare more than one package name.
+
+        Only OBBs matching the APK's package will load on-device, so a bundle
+        with OBBs from multiple packages is almost certainly a mistake.
+        """
+        packages = {}
+        for file_path in all_files:
+            if file_path.suffix != '.obb':
+                continue
+            match = _OBB_FILENAME_PATTERN.match(file_path.name)
+            if not match:
+                continue
+            packages.setdefault(match.group(1), []).append(file_path.name)
+
+        if len(packages) <= 1:
+            return
+
+        lines = [f"  - {pkg}: {', '.join(files)}" for pkg, files in packages.items()]
+        print(
+            "Warning: bundle contains OBB files for multiple packages. Only OBBs "
+            "matching the APK's package name will load on-device:\n"
+            + "\n".join(lines)
+        )
 
     def create_app_bundle_from_existing(self, build_id, files=None, release_channel_id=None, new_release_channel_title=None):
         """Create an app bundle from existing build and files
