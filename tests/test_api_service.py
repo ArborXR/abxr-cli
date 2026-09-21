@@ -125,6 +125,14 @@ class TestRetryClient:
         svc = ApiService("https://api.xrdm.app", "tok")
         assert isinstance(svc.client, requests.Session)
 
+    def test_verifies_tls_by_default(self):
+        svc = ApiService("https://api.xrdm.app", "tok")
+        assert svc.client.verify is True
+
+    def test_local_domain_skips_tls_verification(self):
+        svc = ApiService("https://portal.xrdm.local", "tok")
+        assert svc.client.verify is False
+
     @pytest.mark.parametrize("url", ["https://api.xrdm.app/api/v3/apps", "http://portal.xrdm.local/api/v3/apps"])
     def test_retry_adapter_mounted_for_both_schemes(self, url):
         svc = ApiService("https://api.xrdm.app", "tok")

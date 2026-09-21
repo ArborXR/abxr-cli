@@ -61,19 +61,13 @@ class ApiService:
             'Accept': 'application/json'
         }
 
+        self.client = _build_client()
+
         if ".local" in self._raw_base_url:
             requests.packages.urllib3.disable_warnings(
                 requests.packages.urllib3.exceptions.InsecureRequestWarning
             )
-
-            old_request_method = requests.Session.request
-            def new_request_method(self, *args, **kwargs):
-                kwargs['verify'] = False
-                return old_request_method(self, *args, **kwargs)
-
-            requests.Session.request = new_request_method
-
-        self.client = _build_client()
+            self.client.verify = False
 
     @property
     def base_url(self):
