@@ -40,6 +40,10 @@ pip install abxrcli
 `-s, --silent`
 * Description: Disable any terminal printing of progress bars for longer operations, like file uploads.
 
+## Retries
+
+Every request the CLI makes (API calls and the file part uploads to storage) is retried automatically on transient failures: HTTP 429, 502, 503 and 504 responses, connection errors, and connections dropped before a response arrives. A request is attempted up to 6 times in total (the original plus 5 retries) with exponential backoff between attempts (0, 2, 4, 8 and 16 seconds, or the server's `Retry-After` value when present), so a request is abandoned after roughly 30 seconds of failures. Other errors, including 500, are reported immediately without retrying. No configuration is needed.
+
 ## Command Groups
 
 The CLI tool is divided into multiple groups including apps, app_bundles, files, and devices. Each group has its own set of subcommands.
