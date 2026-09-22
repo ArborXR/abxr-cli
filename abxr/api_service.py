@@ -5,8 +5,40 @@
 
 import re
 import requests
+from requests.adapters import HTTPAdapter, Retry
 
 API_VERSION = 'v3'
+
+RETRY_TOTAL = 5
+RETRY_BACKOFF_FACTOR = 1
+RETRY_STATUS_CODES = frozenset({429, 502, 503, 504})
+RETRY_METHODS = frozenset({'GET', 'POST', 'PUT', 'PATCH', 'DELETE'})
+
+
+def _build_client():
+    """A requests.Session that retries transient failures with exponential backoff.
+
+    Covers every v3 API call and the presigned part PUTs to storage. A bundle
+    upload makes thousands of requests, so a single 503 from a pod that is
+    being rolled during a deploy must not abort the whole run.
+
+    Retries exhaust to the last response rather than raising, so call sites
+    keep their existing raise_for_status() error handling.
+    """
+    retry = Retry(
+        total=RETRY_TOTAL,
+        backoff_factor=RETRY_BACKOFF_FACTOR,
+        status_forcelist=RETRY_STATUS_CODES,
+        allowed_methods=RETRY_METHODS,
+        raise_on_status=False,
+        respect_retry_after_header=True,
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+
+    session = requests.Session()
+    session.mount('https://', adapter)
+    session.mount('http://', adapter)
+    return session
 
 
 class ApiService:
@@ -29,19 +61,13 @@ class ApiService:
             'Accept': 'application/json'
         }
 
+        self.client = _build_client()
+
         if ".local" in self._raw_base_url:
             requests.packages.urllib3.disable_warnings(
                 requests.packages.urllib3.exceptions.InsecureRequestWarning
             )
-
-            old_request_method = requests.Session.request
-            def new_request_method(self, *args, **kwargs):
-                kwargs['verify'] = False
-                return old_request_method(self, *args, **kwargs)
-
-            requests.Session.request = new_request_method
-
-        self.client = requests
+            self.client.verify = False
 
     @property
     def base_url(self):
